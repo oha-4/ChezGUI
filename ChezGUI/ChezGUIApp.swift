@@ -21,8 +21,12 @@ enum ThemePalette: String, CaseIterable, Identifiable {
 
 @main
 struct ChezGUIApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
-        WindowGroup {
+        // `Window` (not `WindowGroup`) is a single-instance scene: ⌘N no longer
+        // spawns extra windows, so only one app window ever exists.
+        Window("ChezGUI", id: "main") {
             ContentView()
                 .frame(minWidth: 800, minHeight: 500)
         }
@@ -31,6 +35,13 @@ struct ChezGUIApp: App {
         Settings {
             SettingsView()
         }
+    }
+}
+
+/// Quit the whole app when its (single) window is closed.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
     }
 }
 
