@@ -78,6 +78,7 @@ final class AppModel: ObservableObject {
 }
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var model = AppModel()
     /// The single web view / Monaco bridge, owned here so both the sidebar and
     /// the detail view can consult its dirty state for the unsaved-changes guard.
@@ -126,6 +127,14 @@ struct ContentView: View {
             // A successful save changes the source, so refresh status/diff.
             bridge.onSaved = { [weak model] in Task { await model?.refresh() } }
             await model.refresh()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Files can change on disk (terminal, other tools) while the app is
+            // backgrounded; re-sync tree + status on return to foreground.
+            // refresh() rebuilds the tree only — it never reloads the editor
+            // (.task is keyed on path+mode), so unsaved Edit-tab edits survive.
+            guard phase == .active, !model.isLoading else { return }
+            Task { await model.refresh() }
         }
         .alert(
             "chezmoi error",
