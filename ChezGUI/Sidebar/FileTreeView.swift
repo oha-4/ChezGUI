@@ -16,11 +16,16 @@ struct FileTreeView: View {
     /// Invoked to re-add a file (`chezmoi re-add`): overwrite the source state
     /// with the on-disk file. Never offered for templates.
     let onReAdd: (FileNode) -> Void
+    /// Invoked to apply a file (`chezmoi apply`): overwrite the on-disk file
+    /// with the rendered source state. Offered only when the target differs.
+    let onApply: (FileNode) -> Void
     @State private var expanded: Set<String> = []
     /// The file pending a forget confirmation, or nil when no dialog is shown.
     @State private var forgetTarget: FileNode?
     /// The file pending a re-add confirmation, or nil when no dialog is shown.
     @State private var reAddTarget: FileNode?
+    /// The file pending an apply confirmation, or nil when no dialog is shown.
+    @State private var applyTarget: FileNode?
 
     var body: some View {
         List(selection: $selection) {
@@ -65,6 +70,24 @@ struct FileTreeView: View {
                 Text("chezmoi’s source state for “\(node.name)” will be overwritten with the current file on disk, making the on-disk version the source of truth.")
             }
         }
+        .confirmationDialog(
+            applyTarget?.isDir == true ? "Apply this folder to disk?" : "Apply this file to disk?",
+            isPresented: Binding(
+                get: { applyTarget != nil },
+                set: { if !$0 { applyTarget = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: applyTarget
+        ) { node in
+            Button("Apply", role: .destructive) { onApply(node) }
+            Button("Cancel", role: .cancel) {}
+        } message: { node in
+            if node.isDir {
+                Text("The on-disk files for every changed managed file inside “\(node.name)” will be overwritten with chezmoi’s rendered source state, making the source the source of truth.")
+            } else {
+                Text("The on-disk file “\(node.name)” will be overwritten with chezmoi’s rendered source state, making the source the source of truth.")
+            }
+        }
     }
 
     // Returns AnyView to break the opaque-type self-reference in the recursion.
@@ -86,6 +109,7 @@ struct FileTreeView: View {
                             // chezmoi skips templates and no-op files, so only
                             // offer it when something inside actually changed.
                             if node.hasChangedDescendant {
+                                Button("Apply Folder to Disk…") { applyTarget = node }
                                 Button("Re-add Folder from Disk…") { reAddTarget = node }
                             }
                             Button("Stop Managing Folder (Forget)…", role: .destructive) {
@@ -102,8 +126,12 @@ struct FileTreeView: View {
                         Button("Open with Default App") { open(node) }
                         Button("Reveal in Finder") { revealInFinder(node) }
                         Divider()
-                        // Re-add only makes sense when the on-disk file differs
-                        // from the source, and chezmoi never re-adds templates.
+                        // Apply / re-add only make sense when the on-disk file
+                        // differs from the source. chezmoi never re-adds
+                        // templates, but apply renders them fine.
+                        if node.hasDiff {
+                            Button("Apply to Disk…") { applyTarget = node }
+                        }
                         if node.hasDiff && !node.isTemplate {
                             Button("Re-add from Disk…") { reAddTarget = node }
                         }

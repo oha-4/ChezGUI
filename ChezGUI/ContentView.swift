@@ -53,6 +53,18 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Apply a file: `chezmoi apply` writes the rendered source state to the
+    /// destination file on disk (the source becomes the source of truth). The
+    /// diff disappears afterwards, so we reload. Works for templates too.
+    func apply(_ node: FileNode) async {
+        do {
+            try await client.apply(target: node.absolutePath)
+            await refresh()
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
     /// Depth-first lookup of a node by its stable id (relative path).
     private static func node(withId id: FileNode.ID, in nodes: [FileNode]) -> FileNode? {
         for node in nodes {
@@ -86,7 +98,8 @@ struct ContentView: View {
                     set: { newValue in guardedNavigate { model.selection = newValue } }
                 ),
                 onForget: { node in Task { await model.forget(node) } },
-                onReAdd: { node in Task { await model.reAdd(node) } }
+                onReAdd: { node in Task { await model.reAdd(node) } },
+                onApply: { node in Task { await model.apply(node) } }
             )
             .navigationSplitViewColumnWidth(min: 220, ideal: 280)
         } detail: {

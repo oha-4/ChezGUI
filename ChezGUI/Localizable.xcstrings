@@ -1,354 +1,427 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "Binary or unreadable file — diff not shown" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "バイナリまたは読み取れないファイルのため、差分を表示できません"
+  "sourceLanguage": "en",
+  "strings": {
+    "Binary or unreadable file — diff not shown": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バイナリまたは読み取れないファイルのため、差分を表示できません"
           }
         }
       }
     },
-    "Binary or unreadable source file" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "バイナリまたは読み取れないソースファイルです"
+    "Binary or unreadable source file": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バイナリまたは読み取れないソースファイルです"
           }
         }
       }
     },
-    "Cancel" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "キャンセル"
+    "Cancel": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャンセル"
           }
         }
       }
     },
-    "chezmoi %@ failed: %@" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "chezmoi %1$@ に失敗しました: %2$@"
+    "chezmoi %@ failed: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "chezmoi %1$@ に失敗しました: %2$@"
           }
         }
       }
     },
-    "chezmoi cat %@ failed: %@" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "chezmoi cat %@ に失敗しました: %@"
+    "chezmoi cat %@ failed: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "chezmoi cat %@ に失敗しました: %@"
           }
         }
       }
     },
-    "chezmoi cat failed: %@" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "chezmoi cat に失敗しました: %@"
+    "chezmoi cat failed: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "chezmoi cat に失敗しました: %@"
           }
         }
       }
     },
-    "chezmoi error" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "chezmoi エラー"
+    "chezmoi error": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "chezmoi エラー"
           }
         }
       }
     },
-    "chezmoi executable not found. Install it (e.g. `brew install chezmoi`) and try again." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "chezmoi 実行ファイルが見つかりません。インストールして（例: `brew install chezmoi`）から再度お試しください。"
+    "chezmoi executable not found. Install it (e.g. `brew install chezmoi`) and try again.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "chezmoi 実行ファイルが見つかりません。インストールして（例: `brew install chezmoi`）から再度お試しください。"
           }
         }
       }
     },
-    "chezmoi’s source state for “%@” will be overwritten with the current file on disk, making the on-disk version the source of truth." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」の chezmoi ソースステートを、現在ディスク上にあるファイルの内容で上書きします。ディスク上の内容が正となります。"
+    "chezmoi’s source state for “%@” will be overwritten with the current file on disk, making the on-disk version the source of truth.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の chezmoi ソースステートを、現在ディスク上にあるファイルの内容で上書きします。ディスク上の内容が正となります。"
           }
         }
       }
     },
-    "chezmoi’s source state for every managed file inside “%@” will be overwritten with the current files on disk, making the on-disk versions the source of truth. Templates are skipped." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」内のすべての管理対象ファイルの chezmoi ソースステートを、現在ディスク上にあるファイルの内容で上書きします。ディスク上の内容が正となります。テンプレートはスキップされます。"
+    "chezmoi’s source state for every managed file inside “%@” will be overwritten with the current files on disk, making the on-disk versions the source of truth. Templates are skipped.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」内のすべての管理対象ファイルの chezmoi ソースステートを、現在ディスク上にあるファイルの内容で上書きします。ディスク上の内容が正となります。テンプレートはスキップされます。"
           }
         }
       }
     },
-    "Each theme follows your system's light/dark appearance." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "各テーマはシステムのライト／ダーク設定に従います。"
+    "Each theme follows your system's light/dark appearance.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各テーマはシステムのライト／ダーク設定に従います。"
           }
         }
       }
     },
-    "Failed to load image: %@" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "画像の読み込みに失敗しました: %@"
+    "Failed to load image: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像の読み込みに失敗しました: %@"
           }
         }
       }
     },
-    "No file selected" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ファイルが選択されていません"
+    "No file selected": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが選択されていません"
           }
         }
       }
     },
-    "OK" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+    "OK": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         }
       }
     },
-    "Open with Default App" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "デフォルトアプリで開く"
+    "Open with Default App": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトアプリで開く"
           }
         }
       }
     },
-    "Re-add" : {
-      "comment" : "Confirmation button to re-add a file's on-disk contents into the chezmoi source state",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "再追加"
+    "Re-add": {
+      "comment": "Confirmation button to re-add a file's on-disk contents into the chezmoi source state",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再追加"
           }
         }
       }
     },
-    "Re-add from Disk…" : {
-      "comment" : "Context-menu item: overwrite the source state with the on-disk file",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ディスクから再追加…"
+    "Re-add from Disk…": {
+      "comment": "Context-menu item: overwrite the source state with the on-disk file",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクから再追加…"
           }
         }
       }
     },
-    "Re-add Folder from Disk…" : {
-      "comment" : "Context-menu item: re-add every managed file in the folder from disk",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フォルダをディスクから再追加…"
+    "Re-add Folder from Disk…": {
+      "comment": "Context-menu item: re-add every managed file in the folder from disk",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダをディスクから再追加…"
           }
         }
       }
     },
-    "Re-add this file from disk?" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このファイルをディスクから再追加しますか？"
+    "Re-add this file from disk?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルをディスクから再追加しますか？"
           }
         }
       }
     },
-    "Re-add this folder from disk?" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このフォルダをディスクから再追加しますか？"
+    "Re-add this folder from disk?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このフォルダをディスクから再追加しますか？"
           }
         }
       }
     },
-    "Reload managed files and status" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理対象ファイルとステータスを再読み込み"
+    "Reload managed files and status": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理対象ファイルとステータスを再読み込み"
           }
         }
       }
     },
-    "Reveal in Finder" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finderで表示"
+    "Reveal in Finder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finderで表示"
           }
         }
       }
     },
-    "Select a file to view its diff" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "差分を表示するファイルを選択してください"
+    "Select a file to view its diff": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "差分を表示するファイルを選択してください"
           }
         }
       }
     },
-    "Stop Managing" : {
-      "comment" : "Confirmation button to stop managing a file (chezmoi forget)",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理をやめる"
+    "Stop Managing": {
+      "comment": "Confirmation button to stop managing a file (chezmoi forget)",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理をやめる"
           }
         }
       }
     },
-    "Stop Managing (Forget)…" : {
-      "comment" : "Context-menu item: remove a file from chezmoi management, leaving the on-disk file",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理をやめる（Forget）…"
+    "Stop Managing (Forget)…": {
+      "comment": "Context-menu item: remove a file from chezmoi management, leaving the on-disk file",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理をやめる（Forget）…"
           }
         }
       }
     },
-    "Stop Managing Folder (Forget)…" : {
-      "comment" : "Context-menu item: remove a folder (and all files inside) from chezmoi management, leaving the on-disk files",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フォルダの管理をやめる（Forget）…"
+    "Stop Managing Folder (Forget)…": {
+      "comment": "Context-menu item: remove a folder (and all files inside) from chezmoi management, leaving the on-disk files",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダの管理をやめる（Forget）…"
           }
         }
       }
     },
-    "Stop managing this file?" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このファイルの管理をやめますか？"
+    "Stop managing this file?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルの管理をやめますか？"
           }
         }
       }
     },
-    "Stop managing this folder?" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このフォルダの管理をやめますか？"
+    "Stop managing this folder?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このフォルダの管理をやめますか？"
           }
         }
       }
     },
-    "System" : {
-      "comment" : "Theme palette name that follows the OS appearance",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "システム"
+    "System": {
+      "comment": "Theme palette name that follows the OS appearance",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム"
           }
         }
       }
     },
-    "Template" : {
-      "comment" : "Badge shown when the source file is a chezmoi *.tmpl template",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "テンプレート"
+    "Template": {
+      "comment": "Badge shown when the source file is a chezmoi *.tmpl template",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テンプレート"
           }
         }
       }
     },
-    "Theme" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "テーマ"
+    "Theme": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テーマ"
           }
         }
       }
     },
-    "This file is rendered by chezmoi from a Go template (*.tmpl). The Edit tab shows the raw template source." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このファイルは chezmoi が Go テンプレート (*.tmpl) からレンダリングします。Edit タブにはテンプレートのソースがそのまま表示されます。"
+    "This file is rendered by chezmoi from a Go template (*.tmpl). The Edit tab shows the raw template source.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルは chezmoi が Go テンプレート (*.tmpl) からレンダリングします。Edit タブにはテンプレートのソースがそのまま表示されます。"
           }
         }
       }
     },
-    "“%@” will be removed from chezmoi’s source state. The file on disk is left untouched." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」を chezmoi のソースステートから削除します。ディスク上のファイルはそのまま残ります。"
+    "“%@” will be removed from chezmoi’s source state. The file on disk is left untouched.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」を chezmoi のソースステートから削除します。ディスク上のファイルはそのまま残ります。"
           }
         }
       }
     },
-    "“%@” and every managed file inside it will be removed from chezmoi’s source state. The files on disk are left untouched." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」とその中のすべての管理対象ファイルを chezmoi のソースステートから削除します。ディスク上のファイルはそのまま残ります。"
+    "“%@” and every managed file inside it will be removed from chezmoi’s source state. The files on disk are left untouched.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」とその中のすべての管理対象ファイルを chezmoi のソースステートから削除します。ディスク上のファイルはそのまま残ります。"
+          }
+        }
+      }
+    },
+    "Apply": {
+      "comment": "Confirmation button to apply a file's rendered source state to disk",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "適用"
+          }
+        }
+      }
+    },
+    "Apply to Disk…": {
+      "comment": "Context-menu item: overwrite the on-disk file with the rendered source state",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスクに適用…"
+          }
+        }
+      }
+    },
+    "Apply Folder to Disk…": {
+      "comment": "Context-menu item: overwrite the on-disk files in a folder with the rendered source state",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダをディスクに適用…"
+          }
+        }
+      }
+    },
+    "Apply this file to disk?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルをディスクに適用しますか？"
+          }
+        }
+      }
+    },
+    "Apply this folder to disk?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このフォルダをディスクに適用しますか？"
+          }
+        }
+      }
+    },
+    "The on-disk file “%@” will be overwritten with chezmoi’s rendered source state, making the source the source of truth.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスク上のファイル「%@」を、chezmoi がレンダリングしたソースステートで上書きします。ソースが正となります。"
+          }
+        }
+      }
+    },
+    "The on-disk files for every changed managed file inside “%@” will be overwritten with chezmoi’s rendered source state, making the source the source of truth.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」内の変更があるすべての管理対象ファイルを、chezmoi がレンダリングしたソースステートで上書きします。ソースが正となります。"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

@@ -176,4 +176,12 @@ actor ChezmoiClient {
     func reAdd(target: String) throws {
         _ = try run(["re-add", target])
     }
+
+    /// Apply a target: write the rendered source state to the destination file
+    /// on disk (the source becomes the source of truth). `--force` skips the
+    /// interactive prompt (we run without a TTY). Templates apply fine, so this
+    /// is offered for any changed target. A no-op without a diff.
+    func apply(target: String) throws {
+        _ = try run(["apply", "--force", target])
+    }
 }

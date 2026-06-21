@@ -5,10 +5,10 @@ dotfiles as a tree and inspect them with colourised diffs, syntax-highlighted
 source, and rich previews.
 
 > **Early days.** ChezGUI can browse **and edit** your managed dotfiles (saving
-> straight back to the source state), and manage what chezmoi tracks via
-> **forget** / **re-add**, but does not run `chezmoi apply` yet — so edits take
-> effect on your next apply. Applying and other write commands are the next phase
-> (see [Roadmap](#roadmap)).
+> straight back to the source state), manage what chezmoi tracks via
+> **forget** / **re-add**, and **apply** changes per file or folder back to disk.
+> `add` / `merge` and other write commands are the next phase (see
+> [Roadmap](#roadmap)).
 
 ![Platform](https://img.shields.io/badge/platform-macOS-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -27,13 +27,17 @@ source, and rich previews.
   Go-template `{{ … }}` *inside* string values via a TextMate injection grammar.
 - **Rich view** for Markdown (rendered with `markdown-it`, YAML frontmatter
   parsed into a table) and images (inline preview).
-- **Manage membership** from the sidebar right-click menu, each behind a
+- **Manage membership & apply** from the sidebar right-click menu, each behind a
   confirmation dialog:
-  - **Stop Managing (Forget)** — run `chezmoi forget` to stop tracking a file;
-    the actual file on disk is left untouched.
+  - **Apply to Disk** — run `chezmoi apply` to overwrite the on-disk file (or
+    every changed file in a folder) with chezmoi's rendered source state (make
+    the source the source of truth). Offered only for changed files/folders;
+    works for templates too.
   - **Re-add from Disk** — run `chezmoi re-add` to overwrite the source state
     with the current on-disk file (make your local copy the source of truth).
     Offered only for changed, non-template files.
+  - **Stop Managing (Forget)** — run `chezmoi forget` to stop tracking a file;
+    the actual file on disk is left untouched.
 
 Tabs are shown per file based on what makes sense: Diff only when there's a
 diff, Rich only for Markdown/images.
@@ -49,7 +53,7 @@ diff, Rich only for Markdown/images.
 ```
 ChezGUI/ (SwiftUI)
   ContentView      NavigationSplitView (sidebar tree + detail) + refresh toolbar
-  Chezmoi/         ChezmoiClient (Process wrapper; read-only cmds + forget/re-add) + ChezmoiModels
+  Chezmoi/         ChezmoiClient (Process wrapper; read-only cmds + apply/forget/re-add) + ChezmoiModels
   Sidebar/         FileNode (tree builder), FileTreeView (sidebar list), StatusBadge
   Detail/          DetailView (Diff/Edit/Rich tabs), WebViewHost (WKWebView), WebBridge
 web/ (Vite + TS)   @codingame/monaco-vscode-api — the real VS Code TextMate +
@@ -73,14 +77,16 @@ Read-only:
 - `chezmoi cat <target>` — rendered target contents (diff right side, rich view)
 - `chezmoi source-path <target>` — source file path (edit view)
 
-Membership (sidebar right-click, each behind a confirmation dialog):
+Membership & apply (sidebar right-click, each behind a confirmation dialog):
 
-- `chezmoi forget --force <target>` — stop managing a file (the on-disk file stays)
+- `chezmoi apply --force <target>` — write the rendered source state to the
+  on-disk file (offered for changed files/folders; templates included)
 - `chezmoi re-add <target>` — overwrite the source state from the on-disk file
+- `chezmoi forget --force <target>` — stop managing a file (the on-disk file stays)
 
 Saving from the Edit tab writes the buffer **directly to the chezmoi source file**
-(it does not shell out to `chezmoi`), so the change is staged in your source state
-and takes effect on the next `chezmoi apply`.
+(it does not shell out to `chezmoi`), so the change is staged in your source state;
+you can then **Apply to Disk** from the sidebar to push it out.
 
 ## Build & run
 
@@ -117,7 +123,8 @@ rebuilding the app.
 
 ## Roadmap
 
-- `chezmoi apply` (with a confirmation dialog), `add` / `merge`
+- `chezmoi add` / `merge`
+- Apply-all / batch apply across the whole tree (per-file/folder apply is done)
 - Side-by-side rendered "rich diff" (old vs new Markdown)
 
 ## License

@@ -2,9 +2,10 @@
 
 Native macOS GUI for [chezmoi](https://www.chezmoi.io/). Browse managed dotfiles as
 a tree, view colourised diffs / rich previews, **edit the source state** in the
-Edit tab (save writes directly to the chezmoi source file), and **manage membership**
-from the sidebar right-click menu (`chezmoi forget` / `re-add`). No `chezmoi apply`
-yet. See `README.md` for the user-facing overview.
+Edit tab (save writes directly to the chezmoi source file), **manage membership**
+(`chezmoi forget` / `re-add`), and **apply** changes to disk per file/folder
+(`chezmoi apply`) — all from the sidebar right-click menu. No batch/apply-all yet.
+See `README.md` for the user-facing overview.
 
 ## Build & run (important workflow)
 
@@ -35,7 +36,7 @@ open build/Debug/ChezGUI.app
 ```
 ChezGUI/ (SwiftUI)
   ContentView      NavigationSplitView (sidebar tree + detail) + refresh toolbar
-  Chezmoi/         ChezmoiClient (Process wrapper; read-only cmds + forget/re-add) + ChezmoiModels
+  Chezmoi/         ChezmoiClient (Process wrapper; read-only cmds + apply/forget/re-add) + ChezmoiModels
   Sidebar/         FileNode (tree builder), FileTreeView (.sidebar list), StatusBadge
   Detail/          DetailView (Diff/Edit/Rich tabs), WebViewHost (WKWebView), WebBridge
 web/ (Vite + TS)   monaco-vscode-api (real VS Code TextMate + theme services) for
@@ -111,14 +112,21 @@ Data flow: `chezmoi managed --format json --path-style all` (+ `--include=dirs`)
 tree; `chezmoi status -p absolute` → M/A/D/R badges; Diff = file on disk (original) vs
 `chezmoi cat` (modified); Rich = render `chezmoi cat` (markdown) or base64 image data URI.
 
-Membership commands (sidebar right-click; `ChezmoiClient` mutating section, `AppModel`
-actions, `FileTreeView` context menu + a `confirmationDialog` per action):
-- `chezmoi forget --force <target>` — stop managing a file; **leaves the on-disk file**.
-  `--force` is required (no TTY for the prompt). Offered for every file.
+Membership & apply commands (sidebar right-click; `ChezmoiClient` mutating section,
+`AppModel` actions, `FileTreeView` context menu + a `confirmationDialog` per action).
+Menu order is **Apply → Re-add → Forget** (forward, reverse, then destructive-last):
+- `chezmoi apply --force <target>` — write the rendered source state to the on-disk
+  file (the source becomes the source of truth). `--force` required (no TTY). Offered
+  **when `node.hasDiff`** (files) or **`node.hasChangedDescendant`** (folders) — a no-op
+  without a diff. **Templates ARE offered** (unlike re-add): apply renders `{{ … }}`
+  fine. Touches the destination only, so the Edit tab's source buffer is unaffected.
 - `chezmoi re-add <target>` — overwrite the source state from the on-disk file (make the
   destination the source of truth). Offered **only when `node.hasDiff && !node.isTemplate`**:
   re-add is a no-op without changes, and chezmoi never re-adds templates (would clobber the
-  `{{ … }}` with rendered output). Both run `await model.<action>` → `refresh()`.
+  `{{ … }}` with rendered output).
+- `chezmoi forget --force <target>` — stop managing a file; **leaves the on-disk file**.
+  `--force` is required (no TTY for the prompt). Offered for every file.
+All run `await model.<action>` → `refresh()`.
 
 Save flow (Edit tab): web posts `{type:"save", payload:{content}}` → `MonacoBridge`
 writes it **directly to `editableSourcePath`** (the `*.tmpl`/source file,
@@ -165,12 +173,13 @@ diff, Rich only for markdown/images. `defaultMode` picks the best tab on selecti
 
 ## Remaining / next phase (not started)
 
-- `chezmoi apply` (with confirmation dialog), `add` / `merge`.
+- `chezmoi add` / `merge`; a batch/apply-all across the whole tree (per-file/folder
+  apply is done).
 - ③ side-by-side rendered "rich diff" (old vs new markdown) — deprioritised after the diff
   simplification; only do it if the user asks.
 
 Done (so not "remaining"):
 - Editing the Edit tab → writes back to the source file (see the save flow + the
   model-reference gotcha above).
-- `forget` / `re-add` from the sidebar right-click menu (see the membership commands
-  under Data flow).
+- `apply` / `forget` / `re-add` per file/folder from the sidebar right-click menu
+  (see the membership & apply commands under Data flow).
