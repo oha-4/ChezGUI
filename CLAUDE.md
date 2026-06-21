@@ -52,8 +52,12 @@ string values (e.g. `"email": "{{ .email }}"`) via a TextMate **injection** gram
 `web/src/main.ts` registers ONE local extension (`chezgui-grammars`) contributing:
 the vendored `toml` + `go-template` grammars, the `injectTo` injection grammar
 (`web/src/grammars/`), and the VS Code colour themes (`web/src/themes-vscode/`).
-Base languages (json/yaml/ini/shellscript/markdown) come from
-`@codingame/monaco-vscode-*-default-extension` packages. There is no more
+Base languages (json/yaml/ini/shellscript/markdown/python/ruby/lua/rust/go/
+javascript/typescript/perl/xml/html/css) come from
+`@codingame/monaco-vscode-*-default-extension` packages — to add another, install
+its package, `await` its `whenReady` in `bootstrap()`, and add the extension to
+`EXT_LANG` (and its `source.*` scope to the injection's `injectTo` if `*.tmpl`
+of that language should also highlight `{{ … }}`). There is no more
 `tm.ts`, no Monarch `gotmpl`, no per-scope colour mapping — the theme service
 colours TextMate scopes directly. `DetailView.showSource` sends `language: nil`
 even for templates; the base language is detected from the path and the injection

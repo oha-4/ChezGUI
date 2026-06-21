@@ -33,6 +33,17 @@ import { whenReady as yamlReady } from "@codingame/monaco-vscode-yaml-default-ex
 import { whenReady as iniReady } from "@codingame/monaco-vscode-ini-default-extension";
 import { whenReady as shellReady } from "@codingame/monaco-vscode-shellscript-default-extension";
 import { whenReady as markdownReady } from "@codingame/monaco-vscode-markdown-basics-default-extension";
+import { whenReady as pythonReady } from "@codingame/monaco-vscode-python-default-extension";
+import { whenReady as rubyReady } from "@codingame/monaco-vscode-ruby-default-extension";
+import { whenReady as luaReady } from "@codingame/monaco-vscode-lua-default-extension";
+import { whenReady as rustReady } from "@codingame/monaco-vscode-rust-default-extension";
+import { whenReady as goReady } from "@codingame/monaco-vscode-go-default-extension";
+import { whenReady as jsReady } from "@codingame/monaco-vscode-javascript-default-extension";
+import { whenReady as tsReady } from "@codingame/monaco-vscode-typescript-basics-default-extension";
+import { whenReady as perlReady } from "@codingame/monaco-vscode-perl-default-extension";
+import { whenReady as xmlReady } from "@codingame/monaco-vscode-xml-default-extension";
+import { whenReady as htmlReady } from "@codingame/monaco-vscode-html-default-extension";
+import { whenReady as cssReady } from "@codingame/monaco-vscode-css-default-extension";
 
 // Vendored grammars not shipped as VS Code builtins. `?url` => bundled as a
 // relative asset, served over app:// offline.
@@ -165,6 +176,25 @@ const EXT_LANG: Record<string, string> = {
   ini: "ini",
   cfg: "ini",
   gitconfig: "ini",
+  py: "python",
+  pyw: "python",
+  rb: "ruby",
+  lua: "lua",
+  rs: "rust",
+  go: "go",
+  js: "javascript",
+  mjs: "javascript",
+  cjs: "javascript",
+  jsx: "javascript",
+  ts: "typescript",
+  tsx: "typescript",
+  pl: "perl",
+  pm: "perl",
+  xml: "xml",
+  xsl: "xml",
+  html: "html",
+  htm: "html",
+  css: "css",
 };
 // Whole-filename matches (dotfiles that carry no useful extension, e.g. `.zshrc`).
 const FILENAME_LANG: Record<string, string> = {
@@ -193,7 +223,39 @@ const FILENAME_LANG: Record<string, string> = {
   curlrc: "ini",
   wgetrc: "ini",
 };
-function detectLanguage(path: string, explicit?: string): string {
+// Interpreter (from a `#!` shebang) → VS Code language id. Used only as a
+// fallback for files whose name/extension says nothing (common for executable
+// dotfile scripts). Most interpreters have no registered grammar so resolve to
+// plaintext anyway, but shellscript — by far the common case — is covered.
+const SHEBANG_LANG: Record<string, string> = {
+  sh: "shellscript",
+  bash: "shellscript",
+  zsh: "shellscript",
+  fish: "shellscript",
+  ksh: "shellscript",
+  dash: "shellscript",
+  ash: "shellscript",
+  python: "python",
+  python2: "python",
+  python3: "python",
+  node: "javascript",
+  ruby: "ruby",
+  perl: "perl",
+};
+// Parse the interpreter out of a leading `#!` line, handling `/usr/bin/env`
+// (incl. `env -S`) and trailing interpreter args, e.g. `#!/bin/bash -e`.
+function detectShebang(content?: string): string | undefined {
+  const m = content?.match(/^#!\s*(\S+)(.*)/);
+  if (!m) return undefined;
+  let interp = m[1].split("/").pop() ?? "";
+  if (interp === "env") {
+    // First arg that isn't a flag (`-S`) or a VAR=val assignment is the program.
+    const arg = m[2].trim().split(/\s+/).find((t) => t && !t.startsWith("-") && !t.includes("="));
+    interp = (arg ?? "").split("/").pop() ?? "";
+  }
+  return SHEBANG_LANG[interp.toLowerCase()];
+}
+function detectLanguage(path: string, explicit?: string, content?: string): string {
   if (explicit) return explicit;
   const base = (path.split("/").pop() ?? "").replace(/\.tmpl$/, "");
   // Normalize chezmoi source attributes + the leading dot so `.zshrc`,
@@ -203,10 +265,11 @@ function detectLanguage(path: string, explicit?: string): string {
     .replace(/^dot_/, "")
     .replace(/^\./, "")
     .toLowerCase();
-  // Whole-name match first (rc files), then by extension.
+  // Whole-name match first (rc files), then by extension, then the shebang.
   if (FILENAME_LANG[name]) return FILENAME_LANG[name];
   const ext = name.includes(".") ? name.split(".").pop()! : name;
-  return EXT_LANG[ext] ?? "plaintext";
+  if (EXT_LANG[ext]) return EXT_LANG[ext];
+  return detectShebang(content) ?? "plaintext";
 }
 
 // ---- rendering ----------------------------------------------------------
@@ -320,7 +383,7 @@ interface DiffArgs {
 function showDiff(args: DiffArgs) {
   disposeCurrent();
   setActivePane("editor");
-  const lang = detectLanguage(args.path, args.language);
+  const lang = detectLanguage(args.path, args.language, args.modified || args.original);
   const editor = monaco.editor.createDiffEditor(root, {
     theme: currentTheme(),
     automaticLayout: true,
@@ -355,7 +418,7 @@ function showSource(args: SourceArgs) {
   // The Edit tab shows the raw source. For templates that's the base language
   // (json/yaml/…) with Go-template `{{ … }}` actions; the injectTo grammar
   // overlays those automatically, so no special "gotmpl" handling is needed.
-  const lang = detectLanguage(args.path, args.language);
+  const lang = detectLanguage(args.path, args.language, args.content);
   const editor = monaco.editor.create(root, {
     value: args.content,
     language: lang,
@@ -540,7 +603,11 @@ async function bootstrap() {
             // inside their string tokens (the chezmoi *.tmpl requirement).
             scopeName: "text.injection.go-template",
             path: "./injection.go-template.tmLanguage.json",
-            injectTo: ["source.json", "source.yaml", "source.toml", "source.ini", "source.shell"],
+            injectTo: [
+              "source.json", "source.yaml", "source.toml", "source.ini", "source.shell",
+              "source.python", "source.ruby", "source.lua", "source.rust", "source.go",
+              "source.js", "source.ts", "source.perl", "text.xml", "text.html.basic", "source.css",
+            ],
             embeddedLanguages: { "meta.embedded.go-template": "go-template" },
           },
         ],
@@ -588,6 +655,17 @@ async function bootstrap() {
     iniReady,
     shellReady,
     markdownReady,
+    pythonReady,
+    rubyReady,
+    luaReady,
+    rustReady,
+    goReady,
+    jsReady,
+    tsReady,
+    perlReady,
+    xmlReady,
+    htmlReady,
+    cssReady,
   ]);
 
   // Warm the TextMate service so the first editor highlights immediately.
