@@ -50,6 +50,8 @@ import { whenReady as cssReady } from "@codingame/monaco-vscode-css-default-exte
 import tomlGrammarUrl from "./grammars/toml.tmLanguage.json?url";
 import injectionGrammarUrl from "./grammars/injection.go-template.tmLanguage.json?url";
 import goTemplateGrammarUrl from "./grammars/go-template.tmLanguage.json?url";
+// Vimscript isn't a VS Code builtin; vendored grammar (MIT, XadillaX/vscode-language-viml).
+import vimlGrammarUrl from "./grammars/viml.tmLanguage.json?url";
 
 // Vendored VS Code colour themes, registered via our own extension + `?url`
 // (the path that loads reliably over app:// in WKWebView). Default = the classic
@@ -195,6 +197,7 @@ const EXT_LANG: Record<string, string> = {
   html: "html",
   htm: "html",
   css: "css",
+  vim: "viml",
 };
 // Whole-filename matches (dotfiles that carry no useful extension, e.g. `.zshrc`).
 const FILENAME_LANG: Record<string, string> = {
@@ -216,6 +219,8 @@ const FILENAME_LANG: Record<string, string> = {
   envrc: "shellscript",
   xprofile: "shellscript",
   xinitrc: "shellscript",
+  vimrc: "viml",
+  gvimrc: "viml",
   gitconfig: "ini",
   npmrc: "ini",
   editorconfig: "ini",
@@ -594,10 +599,12 @@ async function bootstrap() {
         languages: [
           { id: "toml", extensions: [".toml"] },
           { id: "go-template", extensions: [".gotmpl"] },
+          { id: "viml", extensions: [".vim", ".vimrc"], filenames: [".vimrc", ".gvimrc", "vimrc", "gvimrc"] },
         ],
         grammars: [
           { language: "toml", scopeName: "source.toml", path: "./toml.tmLanguage.json" },
           { language: "go-template", scopeName: "source.go-template", path: "./go-template.tmLanguage.json" },
+          { language: "viml", scopeName: "source.viml", path: "./viml.tmLanguage.json" },
           {
             // Overlay Go-template `{{ … }}` onto these base scopes, INCLUDING
             // inside their string tokens (the chezmoi *.tmpl requirement).
@@ -607,6 +614,7 @@ async function bootstrap() {
               "source.json", "source.yaml", "source.toml", "source.ini", "source.shell",
               "source.python", "source.ruby", "source.lua", "source.rust", "source.go",
               "source.js", "source.ts", "source.perl", "text.xml", "text.html.basic", "source.css",
+              "source.viml",
             ],
             embeddedLanguages: { "meta.embedded.go-template": "go-template" },
           },
@@ -625,6 +633,7 @@ async function bootstrap() {
   ext.registerFileUrl("./toml.tmLanguage.json", new URL(tomlGrammarUrl, import.meta.url).toString());
   ext.registerFileUrl("./injection.go-template.tmLanguage.json", new URL(injectionGrammarUrl, import.meta.url).toString());
   ext.registerFileUrl("./go-template.tmLanguage.json", new URL(goTemplateGrammarUrl, import.meta.url).toString());
+  ext.registerFileUrl("./viml.tmLanguage.json", new URL(vimlGrammarUrl, import.meta.url).toString());
   ext.registerFileUrl("./light_vs.json", new URL(defaultLightThemeUrl, import.meta.url).toString());
   ext.registerFileUrl("./dark_vs.json", new URL(defaultDarkThemeUrl, import.meta.url).toString());
   ext.registerFileUrl("./solarized-light.json", new URL(solarizedLightThemeUrl, import.meta.url).toString());

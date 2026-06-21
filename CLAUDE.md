@@ -50,8 +50,10 @@ string values (e.g. `"email": "{{ .email }}"`) via a TextMate **injection** gram
 (`injectTo`) — Shiki cannot do in-string injection; that's why it was rejected.
 
 `web/src/main.ts` registers ONE local extension (`chezgui-grammars`) contributing:
-the vendored `toml` + `go-template` grammars, the `injectTo` injection grammar
-(`web/src/grammars/`), and the VS Code colour themes (`web/src/themes-vscode/`).
+the vendored `toml` + `go-template` + `viml` grammars (the latter two are not VS
+Code builtins; `viml` is MIT, from XadillaX/vscode-language-viml), the `injectTo`
+injection grammar (`web/src/grammars/`), and the VS Code colour themes
+(`web/src/themes-vscode/`).
 Base languages (json/yaml/ini/shellscript/markdown/python/ruby/lua/rust/go/
 javascript/typescript/perl/xml/html/css) come from
 `@codingame/monaco-vscode-*-default-extension` packages — to add another, install
