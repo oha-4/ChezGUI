@@ -4,6 +4,10 @@ enum ViewMode: String, Identifiable {
     case diff = "Diff"
     case edit = "Edit"
     case rich = "Rich"
+    /// Read-only rendered target (`chezmoi cat`). Offered only for templates with
+    /// no diff, where the Edit tab shows raw `{{ … }}` source and there's no Diff
+    /// tab — so this is the only way to see the actual rendered file on disk.
+    case current = "Current"
     var id: String { rawValue }
 }
 
@@ -30,24 +34,30 @@ struct DetailView: View {
     /// so each file opens on its own best-fit tab.
     @State private var modeSelection: ViewMode?
 
-    /// Tabs available for a file (pure function of the node — no `self` state).
+    /// Canonical tab order: the read-only views of the rendered result (Diff /
+    /// Rich / Current) grouped together first, then Edit (the editable source)
+    /// last — so viewing the result and editing the source stay visually distinct.
+    private static let modeOrder: [ViewMode] = [.diff, .rich, .current, .edit]
+
+    /// Tabs available for a file (pure function of the node — no `self` state),
+    /// always returned in `modeOrder`.
     private func availableModes(for node: FileNode?) -> [ViewMode] {
         guard let node, !node.isDir else { return [] }
         if node.isImage { return [.rich] } // raw bytes aren't useful in Diff/Edit
-        var modes: [ViewMode] = []
-        if node.hasDiff { modes.append(.diff) }
-        modes.append(.edit)
-        if node.isMarkdown { modes.append(.rich) }
-        return modes
+        var modes: Set<ViewMode> = [.edit]
+        if node.hasDiff { modes.insert(.diff) }
+        if node.isMarkdown { modes.insert(.rich) }
+        // Templates with no diff have no Diff tab and only show raw template
+        // source in Edit — add a read-only view of the rendered result.
+        if node.isTemplate && !node.hasDiff { modes.insert(.current) }
+        return Self.modeOrder.filter(modes.contains)
     }
 
-    /// Best default tab for a freshly selected file.
+    /// Best default tab for a freshly selected file: the first available tab in
+    /// the canonical `modeOrder` (Diff → Rich → Current → Edit).
     private func defaultMode(for node: FileNode?) -> ViewMode {
         let available = availableModes(for: node)
-        let order: [ViewMode] = (node?.hasDiff == true)
-            ? [.diff, .rich, .edit]
-            : [.rich, .edit, .diff]
-        return order.first(where: available.contains) ?? .edit
+        return Self.modeOrder.first(where: available.contains) ?? .edit
     }
 
     /// The tab actually shown: the user's choice if still valid, else the default.
@@ -148,6 +158,25 @@ struct DetailView: View {
             await loadSource(node)
         case .rich:
             await loadRich(node)
+        case .current:
+            await loadCurrent(node)
+        }
+    }
+
+    private func loadCurrent(_ node: FileNode) async {
+        bridge.setEditableSource(nil) // Read-only rendered view.
+        // Show the rendered target (`chezmoi cat`), highlighted as its base
+        // language from the path — no `{{ … }}` remains, so no injection needed.
+        do {
+            let rendered = try await client.cat(target: node.absolutePath)
+            bridge.showSource(
+                path: node.relativePath,
+                language: nil,
+                content: rendered,
+                readOnly: true
+            )
+        } catch {
+            bridge.clear(String(localized: "chezmoi cat failed: \(error.localizedDescription)"))
         }
     }
 
