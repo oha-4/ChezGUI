@@ -1,0 +1,198 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Binary or unreadable file — diff not shown" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バイナリまたは読み取れないファイルのため、差分を表示できません"
+          }
+        }
+      }
+    },
+    "Binary or unreadable source file" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バイナリまたは読み取れないソースファイルです"
+          }
+        }
+      }
+    },
+    "chezmoi %@ failed: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "chezmoi %1$@ に失敗しました: %2$@"
+          }
+        }
+      }
+    },
+    "chezmoi cat %@ failed: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "chezmoi cat %@ に失敗しました: %@"
+          }
+        }
+      }
+    },
+    "chezmoi cat failed: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "chezmoi cat に失敗しました: %@"
+          }
+        }
+      }
+    },
+    "chezmoi error" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "chezmoi エラー"
+          }
+        }
+      }
+    },
+    "chezmoi executable not found. Install it (e.g. `brew install chezmoi`) and try again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "chezmoi 実行ファイルが見つかりません。インストールして（例: `brew install chezmoi`）から再度お試しください。"
+          }
+        }
+      }
+    },
+    "Each theme follows your system's light/dark appearance." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各テーマはシステムのライト／ダーク設定に従います。"
+          }
+        }
+      }
+    },
+    "Failed to load image: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像の読み込みに失敗しました: %@"
+          }
+        }
+      }
+    },
+    "No file selected" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルが選択されていません"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "Open with Default App" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デフォルトアプリで開く"
+          }
+        }
+      }
+    },
+    "Reload managed files and status" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理対象ファイルとステータスを再読み込み"
+          }
+        }
+      }
+    },
+    "Reveal in Finder" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finderで表示"
+          }
+        }
+      }
+    },
+    "Select a file to view its diff" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "差分を表示するファイルを選択してください"
+          }
+        }
+      }
+    },
+    "System" : {
+      "comment" : "Theme palette name that follows the OS appearance",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム"
+          }
+        }
+      }
+    },
+    "Template" : {
+      "comment" : "Badge shown when the source file is a chezmoi *.tmpl template",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テンプレート"
+          }
+        }
+      }
+    },
+    "Theme" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テーマ"
+          }
+        }
+      }
+    },
+    "This file is rendered by chezmoi from a Go template (*.tmpl). The Edit tab shows the raw template source." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルは chezmoi が Go テンプレート (*.tmpl) からレンダリングします。Edit タブにはテンプレートのソースがそのまま表示されます。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

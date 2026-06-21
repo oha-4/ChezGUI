@@ -1,0 +1,275 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BEEF00000000000000000001 /* ChezGUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000001 /* ChezGUIApp.swift */; };
+		BEEF00000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000002 /* ContentView.swift */; };
+		BEEF00000000000000000003 /* FileNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000003 /* FileNode.swift */; };
+		BEEF00000000000000000004 /* FileTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000004 /* FileTreeView.swift */; };
+		BEEF00000000000000000005 /* StatusBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000005 /* StatusBadge.swift */; };
+		BEEF00000000000000000006 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000006 /* DetailView.swift */; };
+		BEEF00000000000000000007 /* WebViewHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000007 /* WebViewHost.swift */; };
+		BEEF00000000000000000008 /* WebBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000008 /* WebBridge.swift */; };
+		BEEF00000000000000000009 /* ChezmoiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD00000000000000000009 /* ChezmoiClient.swift */; };
+		BEEF0000000000000000000A /* ChezmoiModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD0000000000000000000A /* ChezmoiModels.swift */; };
+		C0DE00000000000000000010 /* web in Resources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000F /* web */; };
+		C0DE00000000000000000011 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000012 /* Localizable.xcstrings */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		C0DE00000000000000000001 /* ChezGUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChezGUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEAD00000000000000000001 /* ChezGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/ChezGUIApp.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/ContentView.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000003 /* FileNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Sidebar/FileNode.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000004 /* FileTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Sidebar/FileTreeView.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000005 /* StatusBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Sidebar/StatusBadge.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000006 /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Detail/DetailView.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000007 /* WebViewHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Detail/WebViewHost.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000008 /* WebBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Detail/WebBridge.swift; sourceTree = "<group>"; };
+		DEAD00000000000000000009 /* ChezmoiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Chezmoi/ChezmoiClient.swift; sourceTree = "<group>"; };
+		DEAD0000000000000000000A /* ChezmoiModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Chezmoi/ChezmoiModels.swift; sourceTree = "<group>"; };
+		C0DE0000000000000000000F /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ChezGUI/Resources/web; sourceTree = "<group>"; };
+		C0DE00000000000000000012 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = ChezGUI/Localizable.xcstrings; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C0DE00000000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C0DE00000000000000000002 /* mainGroup */ = {
+			isa = PBXGroup;
+			children = (
+				DEAD00000000000000000001 /* ChezGUIApp.swift */,
+				DEAD00000000000000000002 /* ContentView.swift */,
+				DEAD00000000000000000003 /* FileNode.swift */,
+				DEAD00000000000000000004 /* FileTreeView.swift */,
+				DEAD00000000000000000005 /* StatusBadge.swift */,
+				DEAD00000000000000000006 /* DetailView.swift */,
+				DEAD00000000000000000007 /* WebViewHost.swift */,
+				DEAD00000000000000000008 /* WebBridge.swift */,
+				DEAD00000000000000000009 /* ChezmoiClient.swift */,
+				DEAD0000000000000000000A /* ChezmoiModels.swift */,
+				C0DE0000000000000000000F /* web */,
+				C0DE00000000000000000012 /* Localizable.xcstrings */,
+				C0DE00000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C0DE00000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C0DE00000000000000000001 /* ChezGUI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C0DE00000000000000000005 /* ChezGUI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0DE0000000000000000000C /* Build configuration list for PBXNativeTarget "ChezGUI" */;
+			buildPhases = (
+				C0DE00000000000000000006 /* Sources */,
+				C0DE00000000000000000007 /* Frameworks */,
+				C0DE00000000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ChezGUI;
+			productName = ChezGUI;
+			productReference = C0DE00000000000000000001 /* ChezGUI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C0DE00000000000000000004 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1700;
+				LastUpgradeCheck = 1700;
+				TargetAttributes = {
+					C0DE00000000000000000005 = {
+						CreatedOnToolsVersion = 17.0;
+					};
+				};
+			};
+			buildConfigurationList = C0DE00000000000000000009 /* Build configuration list for PBXProject "ChezGUI" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				ja,
+			);
+			mainGroup = C0DE00000000000000000002 /* mainGroup */;
+			productRefGroup = C0DE00000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C0DE00000000000000000005 /* ChezGUI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C0DE00000000000000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0DE00000000000000000010 /* web in Resources */,
+				C0DE00000000000000000011 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C0DE00000000000000000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BEEF00000000000000000001 /* ChezGUIApp.swift in Sources */,
+				BEEF00000000000000000002 /* ContentView.swift in Sources */,
+				BEEF00000000000000000003 /* FileNode.swift in Sources */,
+				BEEF00000000000000000004 /* FileTreeView.swift in Sources */,
+				BEEF00000000000000000005 /* StatusBadge.swift in Sources */,
+				BEEF00000000000000000006 /* DetailView.swift in Sources */,
+				BEEF00000000000000000007 /* WebViewHost.swift in Sources */,
+				BEEF00000000000000000008 /* WebBridge.swift in Sources */,
+				BEEF00000000000000000009 /* ChezmoiClient.swift in Sources */,
+				BEEF0000000000000000000A /* ChezmoiModels.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C0DE0000000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C0DE0000000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		C0DE0000000000000000000D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_REQUIRED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chezgui.ChezGUI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C0DE0000000000000000000E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_REQUIRED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chezgui.ChezGUI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C0DE00000000000000000009 /* Build configuration list for PBXProject "ChezGUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0DE0000000000000000000A /* Debug */,
+				C0DE0000000000000000000B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0DE0000000000000000000C /* Build configuration list for PBXNativeTarget "ChezGUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0DE0000000000000000000D /* Debug */,
+				C0DE0000000000000000000E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C0DE00000000000000000004 /* Project object */;
+}

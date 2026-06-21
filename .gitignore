@@ -1,0 +1,15 @@
+# Xcode build output
+/build/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Web
+web/node_modules/
+web/dist/
+
+# Bundled web build (regenerated from web/dist via `npm run build` + rsync)
+ChezGUI/Resources/web/
+
+# macOS
+.DS_Store
