@@ -18,7 +18,7 @@ struct DetailView: View {
 
     /// Selected colour-theme palette, shared with the Settings window via the
     /// same UserDefaults key. The web side resolves light/dark automatically.
-    @AppStorage(ThemePalette.storageKey) private var themePalette = ThemePalette.system.rawValue
+    @AppStorage(ThemePalette.storageKey) private var themePalette = ThemePalette.default.rawValue
 
     /// The user's explicit tab choice for the current file. `nil` means "use the
     /// default for this file"; it is cleared whenever the selected file changes
@@ -168,11 +168,12 @@ struct DetailView: View {
             bridge.clear(String(localized: "Binary or unreadable source file"))
             return
         }
-        // Edit shows the raw source. For templates that's Go-template syntax,
-        // not the rendered target — highlight it as such instead of as JSON/etc.
+        // Edit shows the raw source. Templates (*.tmpl) are highlighted as their
+        // base language (json/yaml/…) with Go-template `{{ … }}` overlaid by the
+        // injection grammar on the web side, so no special language is needed.
         bridge.showSource(
             path: node.relativePath,
-            language: node.isTemplate ? "gotmpl" : nil,
+            language: nil,
             content: content,
             readOnly: true
         )

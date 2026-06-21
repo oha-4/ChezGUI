@@ -5,18 +5,16 @@ import SwiftUI
 /// light/dark toggle. `rawValue` is the palette key sent over the bridge and
 /// persisted in UserDefaults; it must match the keys in `PALETTES` in main.ts.
 enum ThemePalette: String, CaseIterable, Identifiable {
-    case system, github, solarized, tomorrow, clouds
+    case `default` = "Default"
+    case solarized = "Solarized"
 
     static let storageKey = "themePalette"
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .system: return String(localized: "System")
-        case .github: return "GitHub"
+        case .default: return String(localized: "Default")
         case .solarized: return "Solarized"
-        case .tomorrow: return "Tomorrow"
-        case .clouds: return "Clouds"
         }
     }
 }
@@ -38,7 +36,7 @@ struct ChezGUIApp: App {
 
 /// Preferences window (⌘,). Read-only MVP exposes just the theme picker.
 struct SettingsView: View {
-    @AppStorage(ThemePalette.storageKey) private var themePalette = ThemePalette.system.rawValue
+    @AppStorage(ThemePalette.storageKey) private var themePalette = ThemePalette.default.rawValue
 
     var body: some View {
         Form {

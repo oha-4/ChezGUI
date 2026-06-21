@@ -27,12 +27,20 @@ final class AppSchemeHandler: NSObject, WKURLSchemeHandler {
             task.didFailWithError(ChezmoiError(message: "not found: \(relative)"))
             return
         }
-        let response = URLResponse(
+        // Must be an HTTPURLResponse with an explicit 200: a plain URLResponse
+        // surfaces to `fetch()` as `status: 0`, which some loaders (e.g. the
+        // monaco-vscode-api theme loader, which requires `status === 200`) treat
+        // as a failure even though the body is delivered.
+        let response = HTTPURLResponse(
             url: url,
-            mimeType: Self.mimeType(for: fileURL.pathExtension),
-            expectedContentLength: data.count,
-            textEncodingName: "utf-8"
-        )
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: [
+                "Content-Type": Self.mimeType(for: fileURL.pathExtension),
+                "Content-Length": String(data.count),
+                "Access-Control-Allow-Origin": "*",
+            ]
+        )!
         task.didReceive(response)
         task.didReceive(data)
         task.didFinish()

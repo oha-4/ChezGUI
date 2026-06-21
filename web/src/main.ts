@@ -1,92 +1,85 @@
-import * as monaco from "monaco-editor";
-import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+// WKWebView's requestIdleCallback can be throttled/absent and monaco drives
+// some tokenization through it. Install a prompt setTimeout-based version before
+// monaco schedules any idle work, so highlighting lands reliably.
+{
+  const w = self as any;
+  w.requestIdleCallback = (cb: (d: { didTimeout: boolean; timeRemaining: () => number }) => void) =>
+    setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 }), 1) as unknown as number;
+  w.cancelIdleCallback = (id: number) => clearTimeout(id);
+}
+
 import MarkdownIt from "markdown-it";
 import yaml from "js-yaml";
-import { ensureTemplateLanguage } from "./tm";
 
-// Vendored monaco-themes (MIT) — only the few palettes we expose. Each is a
-// single light *or* dark theme; we pair them in PALETTES below.
-import githubLight from "./themes/github-light.json";
-import githubDark from "./themes/github-dark.json";
-import solarizedLight from "./themes/solarized-light.json";
-import solarizedDark from "./themes/solarized-dark.json";
-import tomorrow from "./themes/tomorrow.json";
-import tomorrowNight from "./themes/tomorrow-night.json";
-import clouds from "./themes/clouds.json";
-import cloudsMidnight from "./themes/clouds-midnight.json";
+import * as monaco from "monaco-editor";
 
-// Monaco needs a worker for background tokenization/diffing. The generic
-// editor worker covers diff + basic editing for all languages we care about
-// (json, sh, toml, yaml, md, …). Language *services* (json schema validation
-// etc.) are intentionally omitted to keep the bundle lean.
-self.MonacoEnvironment = {
-  getWorker() {
-    return new EditorWorker();
-  },
+import { initialize, getService } from "@codingame/monaco-vscode-api";
+import { registerExtension, ExtensionHostKind } from "@codingame/monaco-vscode-api/extensions";
+import getTextMateServiceOverride, {
+  ITextMateTokenizationService,
+} from "@codingame/monaco-vscode-textmate-service-override";
+import getThemeServiceOverride from "@codingame/monaco-vscode-theme-service-override";
+import getLanguagesServiceOverride from "@codingame/monaco-vscode-languages-service-override";
+import getModelServiceOverride from "@codingame/monaco-vscode-model-service-override";
+import getConfigurationServiceOverride, {
+  initUserConfiguration,
+} from "@codingame/monaco-vscode-configuration-service-override";
+import getExtensionServiceOverride from "@codingame/monaco-vscode-extensions-service-override";
+
+// Default VS Code extensions: each registers a language + TextMate grammar.
+// (Side-effect imports; we await their `whenReady` below.)
+import { whenReady as jsonReady } from "@codingame/monaco-vscode-json-default-extension";
+import { whenReady as yamlReady } from "@codingame/monaco-vscode-yaml-default-extension";
+import { whenReady as iniReady } from "@codingame/monaco-vscode-ini-default-extension";
+import { whenReady as shellReady } from "@codingame/monaco-vscode-shellscript-default-extension";
+import { whenReady as markdownReady } from "@codingame/monaco-vscode-markdown-basics-default-extension";
+
+// Vendored grammars not shipped as VS Code builtins. `?url` => bundled as a
+// relative asset, served over app:// offline.
+import tomlGrammarUrl from "./grammars/toml.tmLanguage.json?url";
+import injectionGrammarUrl from "./grammars/injection.go-template.tmLanguage.json?url";
+import goTemplateGrammarUrl from "./grammars/go-template.tmLanguage.json?url";
+
+// Vendored VS Code colour themes, registered via our own extension + `?url`
+// (the path that loads reliably over app:// in WKWebView). Default = the classic
+// VS Light/Dark; Solarized = the VS Code Solarized themes.
+import defaultLightThemeUrl from "./themes-vscode/light_vs.json?url";
+import defaultDarkThemeUrl from "./themes-vscode/dark_vs.json?url";
+import solarizedLightThemeUrl from "./themes-vscode/solarized-light.json?url";
+import solarizedDarkThemeUrl from "./themes-vscode/solarized-dark.json?url";
+
+// ---- monaco-vscode-api workers ------------------------------------------
+// Resolved by *label* via getWorkerUrl/getWorkerOptions. `?worker&url` makes
+// vite bundle each worker (with its dep graph) as a relative asset URL.
+import editorWorkerUrl from "monaco-editor/esm/vs/editor/editor.worker?worker&url";
+import extensionHostWorkerUrl from "@codingame/monaco-vscode-api/workers/extensionHost.worker?worker&url";
+import textMateWorkerUrl from "@codingame/monaco-vscode-textmate-service-override/worker?worker&url";
+
+const WORKER_URL: Record<string, string> = {
+  editorWorkerService: editorWorkerUrl,
+  extensionHostWorkerMain: extensionHostWorkerUrl,
+  TextMateWorker: textMateWorkerUrl,
 };
-
-// ---- Go text/template language ------------------------------------------
-// The Edit tab shows the *raw* chezmoi source, so a `*.tmpl` file is Go
-// template syntax (not the rendered target). We highlight the `{{ ... }}`
-// actions distinctly while still giving the surrounding literal text basic
-// config-ish colouring (strings / numbers / booleans), which covers the common
-// json/yaml/toml dotfiles. Diff/Rich keep their target-language highlighting
-// since they show the rendered output.
-monaco.languages.register({ id: "gotmpl" });
-monaco.languages.setMonarchTokensProvider("gotmpl", {
-  defaultToken: "",
-  tokenizer: {
-    root: [
-      [/\{\{\/\*/, "comment", "@tmplComment"],
-      [/\{\{-?/, { token: "delimiter.bracket", next: "@tmplAction" }],
-      // Literal-text (the templated config) — light, generic colouring.
-      [/"(?:[^"\\]|\\.)*"/, "string"],
-      [/\b(?:true|false|null)\b/, "keyword"],
-      [/-?\b\d+(?:\.\d+)?\b/, "number"],
-    ],
-    tmplAction: [
-      [/-?\}\}/, { token: "delimiter.bracket", next: "@pop" }],
-      [
-        /\b(?:if|else|end|range|with|template|define|block|break|continue|and|or|not|eq|ne|lt|le|gt|ge|len|index|slice|printf|print|println|html|js|urlquery|call|nil)\b/,
-        "keyword",
-      ],
-      [/\$[A-Za-z_]\w*/, "variable"],
-      [/\.[A-Za-z_][\w.]*/, "variable"],
-      [/\./, "variable"],
-      [/"(?:[^"\\]|\\.)*"/, "string"],
-      [/`[^`]*`/, "string"],
-      [/-?\b\d+(?:\.\d+)?\b/, "number"],
-      [/\|/, "operator"],
-      [/[=:]/, "operator"],
-      [/[()]/, "delimiter.parenthesis"],
-      [/,/, "delimiter"],
-    ],
-    tmplComment: [
-      [/[^*]+/, "comment"],
-      [/\*\/-?\}\}/, "comment", "@pop"],
-      [/./, "comment"],
-    ],
-  },
-});
+self.MonacoEnvironment = {
+  getWorkerUrl: (_: unknown, label: string) => WORKER_URL[label] ?? editorWorkerUrl,
+  getWorkerOptions: () => ({ type: "module" as const }),
+} as any;
 
 const root = document.getElementById("root") as HTMLElement;
 const rich = document.getElementById("rich") as HTMLElement;
 const placeholder = document.getElementById("placeholder") as HTMLElement;
 
-// Minimal i18n for the few strings the web side owns. Native-supplied text
-// (placeholder/error messages pushed over the bridge) is already localized in
-// Swift; this only covers strings rendered purely in the web layer.
+// Minimal i18n for the few strings the web side owns.
 const isJa = (navigator.language || "").toLowerCase().startsWith("ja");
 const t = {
   noFileSelected: isJa ? "ファイルが選択されていません" : "No file selected",
   switchToInline: isJa ? "インライン差分に切り替え" : "Switch to inline diff",
   switchToSideBySide: isJa ? "サイドバイサイド差分に切り替え" : "Switch to side-by-side diff",
 };
-// Localize the initial placeholder (before the native side pushes anything).
 placeholder.textContent = t.noFileSelected;
 
-// Markdown renderer. html:false escapes raw HTML so rendering the user's own
-// (but still untrusted-shaped) dotfiles can't inject script into the WebView.
+// Markdown renderer. html:false escapes raw HTML so the user's own dotfiles
+// can't inject script into the WebView.
 const md = new MarkdownIt({ html: false, linkify: true, typographer: true });
 
 /** Which of the three overlapping panes is visible. */
@@ -99,69 +92,45 @@ function setActivePane(pane: "editor" | "rich" | "placeholder") {
 type Disposable = { dispose(): void };
 let current: (monaco.editor.IStandaloneCodeEditor | monaco.editor.IStandaloneDiffEditor) & Disposable | null = null;
 
-// Diff layout preference (side-by-side vs inline), owned by the web side and
-// driven by the in-editor icon toolbar (no native round-trip).
+// Diff layout preference (side-by-side vs inline), owned by the web side.
 let diffLayout: "inline" | "sidebyside" = "sidebyside";
 
 // ---- bridge to native (JS -> Swift) -------------------------------------
 type BridgeMessage = { type: string; payload?: unknown };
 function postNative(msg: BridgeMessage) {
   const handlers = (window as any).webkit?.messageHandlers;
-  if (handlers?.bridge) {
-    handlers.bridge.postMessage(msg);
-  }
+  if (handlers?.bridge) handlers.bridge.postMessage(msg);
 }
 
 // ---- theme --------------------------------------------------------------
-// Pairs only: every selectable palette is a {light, dark} pair that follows the
-// OS appearance. Custom palettes are registered with Monaco here; "system" maps
-// to Monaco's own vs / vs-dark. The native Settings UI picks the palette key and
-// pushes it over the bridge (setTheme); the light/dark choice stays automatic.
+// Every palette is a {light, dark} pair following the OS appearance. The keys
+// here must match the rawValues of ThemePalette in Swift. Values are VS Code
+// theme ids contributed by the imported theme extensions.
 type ThemePair = { light: string; dark: string };
-
-const CUSTOM_THEMES: Record<string, monaco.editor.IStandaloneThemeData> = {
-  "github-light": githubLight as unknown as monaco.editor.IStandaloneThemeData,
-  "github-dark": githubDark as unknown as monaco.editor.IStandaloneThemeData,
-  "solarized-light": solarizedLight as unknown as monaco.editor.IStandaloneThemeData,
-  "solarized-dark": solarizedDark as unknown as monaco.editor.IStandaloneThemeData,
-  tomorrow: tomorrow as unknown as monaco.editor.IStandaloneThemeData,
-  "tomorrow-night": tomorrowNight as unknown as monaco.editor.IStandaloneThemeData,
-  clouds: clouds as unknown as monaco.editor.IStandaloneThemeData,
-  "clouds-midnight": cloudsMidnight as unknown as monaco.editor.IStandaloneThemeData,
-};
-for (const [name, data] of Object.entries(CUSTOM_THEMES)) {
-  monaco.editor.defineTheme(name, data);
-}
-
 const PALETTES: Record<string, ThemePair> = {
-  system: { light: "vs", dark: "vs-dark" },
-  github: { light: "github-light", dark: "github-dark" },
-  solarized: { light: "solarized-light", dark: "solarized-dark" },
-  tomorrow: { light: "tomorrow", dark: "tomorrow-night" },
-  clouds: { light: "clouds", dark: "clouds-midnight" },
+  Default: { light: "chezgui-default-light", dark: "chezgui-default-dark" },
+  Solarized: { light: "chezgui-solarized-light", dark: "chezgui-solarized-dark" },
+};
+// Page background behind monaco per concrete theme (avoids a flash on switch).
+const THEME_BG: Record<string, string> = {
+  "chezgui-default-light": "#ffffff",
+  "chezgui-default-dark": "#1e1e1e",
+  "chezgui-solarized-light": "#fdf6e3",
+  "chezgui-solarized-dark": "#002b36",
 };
 
-// Page background behind Monaco, per concrete theme. The builtins carry no
-// colours object, so seed defaults; custom themes bring their own.
-const THEME_BG: Record<string, string> = { vs: "#ffffff", "vs-dark": "#1e1e1e" };
-for (const [name, data] of Object.entries(CUSTOM_THEMES)) {
-  const bg = data.colors?.["editor.background"];
-  if (bg) THEME_BG[name] = bg;
-}
-
-// Selected palette key, driven from native Settings via setTheme().
-let selectedPalette = "system";
+let selectedPalette = "Default";
 
 function osIsDark(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
-/** Concrete Monaco theme for the current palette + OS appearance. */
+/** Concrete VS Code theme id for the current palette + OS appearance. */
 function currentTheme(): string {
-  const pair = PALETTES[selectedPalette] ?? PALETTES.system;
+  const pair = PALETTES[selectedPalette] ?? PALETTES.Default;
   return osIsDark() ? pair.dark : pair.light;
 }
 function applyBodyBg() {
-  const bg = THEME_BG[currentTheme()] ?? (osIsDark() ? "#1e1e1e" : "#ffffff");
+  const bg = THEME_BG[currentTheme()] ?? (osIsDark() ? "#1f1f1f" : "#ffffff");
   document.documentElement.style.setProperty("--bg", bg);
 }
 /** Re-apply the resolved theme to the live editor and the page background. */
@@ -174,47 +143,69 @@ function setTheme(palette: string) {
   selectedPalette = palette;
   applyTheme();
 }
-
-window
-  .matchMedia("(prefers-color-scheme: dark)")
-  .addEventListener("change", applyTheme);
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 
 // ---- language detection -------------------------------------------------
+// Maps file extensions to VS Code language ids. Languages without a registered
+// TextMate grammar fall back to plaintext (uncoloured) — that's fine; the common
+// dotfile languages below are all covered.
 const EXT_LANG: Record<string, string> = {
   json: "json",
-  jsonc: "json",
-  sh: "shell",
-  bash: "shell",
-  zsh: "shell",
-  fish: "shell",
+  jsonc: "jsonc",
+  sh: "shellscript",
+  bash: "shellscript",
+  zsh: "shellscript",
+  fish: "shellscript",
   toml: "toml",
   yaml: "yaml",
   yml: "yaml",
   md: "markdown",
   markdown: "markdown",
-  lua: "lua",
-  vim: "vim",
-  py: "python",
-  rb: "ruby",
-  js: "javascript",
-  ts: "typescript",
-  go: "go",
-  rs: "rust",
   conf: "ini",
   ini: "ini",
+  cfg: "ini",
   gitconfig: "ini",
-  xml: "xml",
-  html: "html",
-  css: "css",
+};
+// Whole-filename matches (dotfiles that carry no useful extension, e.g. `.zshrc`).
+const FILENAME_LANG: Record<string, string> = {
+  zshrc: "shellscript",
+  zshenv: "shellscript",
+  zprofile: "shellscript",
+  zlogin: "shellscript",
+  zlogout: "shellscript",
+  zpreztorc: "shellscript",
+  bashrc: "shellscript",
+  bash_profile: "shellscript",
+  bash_login: "shellscript",
+  bash_logout: "shellscript",
+  bash_aliases: "shellscript",
+  profile: "shellscript",
+  aliases: "shellscript",
+  shrc: "shellscript",
+  kshrc: "shellscript",
+  envrc: "shellscript",
+  xprofile: "shellscript",
+  xinitrc: "shellscript",
+  gitconfig: "ini",
+  npmrc: "ini",
+  editorconfig: "ini",
+  inputrc: "ini",
+  curlrc: "ini",
+  wgetrc: "ini",
 };
 function detectLanguage(path: string, explicit?: string): string {
   if (explicit) return explicit;
-  const base = path.split("/").pop() ?? "";
-  // strip chezmoi-ish suffixes that shouldn't affect highlighting
-  const cleaned = base.replace(/\.tmpl$/, "");
-  const ext = cleaned.includes(".")
-    ? cleaned.split(".").pop()!.toLowerCase()
-    : cleaned.replace(/^dot_/, "").toLowerCase();
+  const base = (path.split("/").pop() ?? "").replace(/\.tmpl$/, "");
+  // Normalize chezmoi source attributes + the leading dot so `.zshrc`,
+  // `dot_zshrc`, `private_dot_zshrc` all resolve to the same name.
+  const name = base
+    .replace(/^(private_|readonly_|executable_|encrypted_|symlink_|literal_|exact_|empty_)*/, "")
+    .replace(/^dot_/, "")
+    .replace(/^\./, "")
+    .toLowerCase();
+  // Whole-name match first (rc files), then by extension.
+  if (FILENAME_LANG[name]) return FILENAME_LANG[name];
+  const ext = name.includes(".") ? name.split(".").pop()! : name;
   return EXT_LANG[ext] ?? "plaintext";
 }
 
@@ -246,19 +237,15 @@ function showPlaceholder(text: string) {
 function diffEditorOptions(): monaco.editor.IDiffEditorConstructionOptions {
   return {
     renderSideBySide: diffLayout === "sidebyside",
-    // Honour the layout toggle regardless of pane width (Monaco otherwise
-    // auto-collapses to inline below ~900px).
+    // Honour the layout toggle regardless of pane width.
     useInlineViewWhenSpaceIsLimited: false,
-    // Always show the full diff (no unchanged-region folding) — keeps the view
-    // simple and avoids the collapse flash / compactMode-vs-side-by-side issues.
+    // Always show the full diff (no unchanged-region folding).
   };
 }
 
 function applyDiffOptions() {
   if (current && current instanceof Object && "updateOptions" in current) {
-    (current as monaco.editor.IStandaloneDiffEditor).updateOptions?.(
-      diffEditorOptions()
-    );
+    (current as monaco.editor.IStandaloneDiffEditor).updateOptions?.(diffEditorOptions());
   }
 }
 
@@ -365,14 +352,10 @@ function showSource(args: SourceArgs) {
   disposeCurrent();
   setToolbarVisible(false);
   setActivePane("editor");
-  let lang = detectLanguage(args.path, args.language);
-  // Templates: the native side sends language "gotmpl". Highlight the raw
-  // source as base-language + Go-template injection (TextMate). Fall back to the
-  // template-only Monarch grammar for base types we don't ship a TM grammar for.
-  if (args.language === "gotmpl") {
-    const base = detectLanguage(args.path);
-    lang = ensureTemplateLanguage(base) ?? "gotmpl";
-  }
+  // The Edit tab shows the raw source. For templates that's the base language
+  // (json/yaml/…) with Go-template `{{ … }}` actions; the injectTo grammar
+  // overlays those automatically, so no special "gotmpl" handling is needed.
+  const lang = detectLanguage(args.path, args.language);
   const editor = monaco.editor.create(root, {
     value: args.content,
     language: lang,
@@ -429,10 +412,7 @@ function formatFmValue(v: unknown): string {
 
 function renderFrontmatterTable(data: Record<string, unknown>): string {
   const rows = Object.entries(data)
-    .map(
-      ([k, v]) =>
-        `<tr><th>${escapeHtml(k)}</th><td>${formatFmValue(v)}</td></tr>`
-    )
+    .map(([k, v]) => `<tr><th>${escapeHtml(k)}</th><td>${formatFmValue(v)}</td></tr>`)
     .join("");
   if (!rows) return "";
   return `<table class="frontmatter"><tbody>${rows}</tbody></table>`;
@@ -494,7 +474,6 @@ function injectRichStyles() {
     .md-body table.frontmatter {
       width: 100%; margin: 0 0 22px; font-size: 13px;
       background: rgba(128,128,128,0.07);
-      /* separate (not collapse) so border-radius + overflow can clip corners */
       border-collapse: separate; border-spacing: 0;
       border: 1px solid rgba(128,128,128,0.2);
       border-radius: 8px; overflow: hidden;
@@ -537,7 +516,93 @@ function injectRichStyles() {
   clear: showPlaceholder,
 };
 
-buildToolbar();
-injectRichStyles();
-applyBodyBg();
-postNative({ type: "ready" });
+// ---- bootstrap ----------------------------------------------------------
+// Register the Go-template injection (+ toml) extension, bring up the VS Code
+// services, then signal `ready`. The native side buffers all commands until
+// then, so editors are only created once tokenization + themes are available.
+async function bootstrap() {
+  const ext = registerExtension(
+    {
+      name: "chezgui-grammars",
+      publisher: "chezgui",
+      version: "0.0.0",
+      engines: { vscode: "*" },
+      contributes: {
+        languages: [
+          { id: "toml", extensions: [".toml"] },
+          { id: "go-template", extensions: [".gotmpl"] },
+        ],
+        grammars: [
+          { language: "toml", scopeName: "source.toml", path: "./toml.tmLanguage.json" },
+          { language: "go-template", scopeName: "source.go-template", path: "./go-template.tmLanguage.json" },
+          {
+            // Overlay Go-template `{{ … }}` onto these base scopes, INCLUDING
+            // inside their string tokens (the chezmoi *.tmpl requirement).
+            scopeName: "text.injection.go-template",
+            path: "./injection.go-template.tmLanguage.json",
+            injectTo: ["source.json", "source.yaml", "source.toml", "source.ini", "source.shell"],
+            embeddedLanguages: { "meta.embedded.go-template": "go-template" },
+          },
+        ],
+        themes: [
+          { id: "chezgui-default-light", label: "Default Light", uiTheme: "vs", path: "./light_vs.json" },
+          { id: "chezgui-default-dark", label: "Default Dark", uiTheme: "vs-dark", path: "./dark_vs.json" },
+          { id: "chezgui-solarized-light", label: "Solarized Light", uiTheme: "vs", path: "./solarized-light.json" },
+          { id: "chezgui-solarized-dark", label: "Solarized Dark", uiTheme: "vs-dark", path: "./solarized-dark.json" },
+        ],
+      },
+    },
+    ExtensionHostKind.LocalProcess,
+    { system: true } as any
+  ) as any;
+  ext.registerFileUrl("./toml.tmLanguage.json", new URL(tomlGrammarUrl, import.meta.url).toString());
+  ext.registerFileUrl("./injection.go-template.tmLanguage.json", new URL(injectionGrammarUrl, import.meta.url).toString());
+  ext.registerFileUrl("./go-template.tmLanguage.json", new URL(goTemplateGrammarUrl, import.meta.url).toString());
+  ext.registerFileUrl("./light_vs.json", new URL(defaultLightThemeUrl, import.meta.url).toString());
+  ext.registerFileUrl("./dark_vs.json", new URL(defaultDarkThemeUrl, import.meta.url).toString());
+  ext.registerFileUrl("./solarized-light.json", new URL(solarizedLightThemeUrl, import.meta.url).toString());
+  ext.registerFileUrl("./solarized-dark.json", new URL(solarizedDarkThemeUrl, import.meta.url).toString());
+
+  // Synchronous (main-thread) TextMate tokenization + our initial theme. Set
+  // before initialize so there's no flash / no attempt to load another default.
+  await initUserConfiguration(
+    JSON.stringify({
+      "editor.experimental.asyncTokenization": false,
+      "workbench.colorTheme": currentTheme(),
+    })
+  );
+
+  await initialize({
+    ...getExtensionServiceOverride(),
+    ...getModelServiceOverride(),
+    ...getConfigurationServiceOverride(),
+    ...getLanguagesServiceOverride(),
+    ...getTextMateServiceOverride(),
+    ...getThemeServiceOverride(),
+  });
+
+  await Promise.all([
+    ext.whenReady?.(),
+    jsonReady,
+    yamlReady,
+    iniReady,
+    shellReady,
+    markdownReady,
+  ]);
+
+  // Warm the TextMate service so the first editor highlights immediately.
+  try {
+    const tm = await getService(ITextMateTokenizationService);
+    await tm.createTokenizer("json");
+  } catch {
+    /* best-effort */
+  }
+
+  applyTheme();
+  buildToolbar();
+  injectRichStyles();
+  applyBodyBg();
+  postNative({ type: "ready" });
+}
+
+void bootstrap();

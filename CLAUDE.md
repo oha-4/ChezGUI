@@ -36,9 +36,53 @@ ChezGUI/ (SwiftUI)
   Chezmoi/         ChezmoiClient (Process wrapper, read-only cmds) + ChezmoiModels
   Sidebar/         FileNode (tree builder), FileTreeView (.sidebar list), StatusBadge
   Detail/          DetailView (Diff/Edit/Rich tabs), WebViewHost (WKWebView), WebBridge
-web/ (Vite + TS)   Monaco (diff/source) + markdown-it (rich). Served to WKWebView over
-                   a custom app:// scheme (NOT file://) so Monaco workers load.
+web/ (Vite + TS)   monaco-vscode-api (real VS Code TextMate + theme services) for
+                   diff/source highlighting + markdown-it (rich). Served to WKWebView
+                   over a custom app:// scheme (NOT file://) so workers/WASM load.
 ```
+
+## Syntax highlighting (monaco-vscode-api) — read before touching `web/`
+
+Highlighting is **one unified pipeline**: `@codingame/monaco-vscode-api` with the
+real VS Code **TextMate** + **theme** services (NOT Monaco's Monarch, NOT Shiki).
+This is what lets chezmoi `*.tmpl` files highlight Go-template `{{ … }}` *inside*
+string values (e.g. `"email": "{{ .email }}"`) via a TextMate **injection** grammar
+(`injectTo`) — Shiki cannot do in-string injection; that's why it was rejected.
+
+`web/src/main.ts` registers ONE local extension (`chezgui-grammars`) contributing:
+the vendored `toml` + `go-template` grammars, the `injectTo` injection grammar
+(`web/src/grammars/`), and the VS Code colour themes (`web/src/themes-vscode/`).
+Base languages (json/yaml/ini/shellscript/markdown) come from
+`@codingame/monaco-vscode-*-default-extension` packages. There is no more
+`tm.ts`, no Monarch `gotmpl`, no per-scope colour mapping — the theme service
+colours TextMate scopes directly. `DetailView.showSource` sends `language: nil`
+even for templates; the base language is detected from the path and the injection
+overlays `{{ … }}`.
+
+**Hard-won gotchas — do NOT "fix" these back:**
+- **`AppSchemeHandler` MUST return `HTTPURLResponse` with `statusCode: 200`** (see
+  `WebBridge.swift`). A plain `URLResponse` surfaces to `fetch()` as `status: 0`,
+  which the theme loader treats as failure → themes silently don't load → every
+  token renders the default colour (`mtk1`). This was the single subtlest bug.
+- **`build.minify: false` in `vite.config.ts` is required.** esbuild minification
+  breaks the TextMate tokenisation/theme-colour path in WKWebView (tokens split
+  but stay default-coloured). Offline-bundled app, so bundle size is a non-issue.
+- **Themes are vendored as VS Code-format JSON and registered via our OWN extension
+  + `?url`** (`web/src/themes-vscode/`). The `@codingame/*-theme-*` *packages* fail
+  to load their theme files over app:// in WKWebView; our `?url`+registerFileUrl
+  path is the one that works.
+- **vite build needs two monaco-vscode-api patches** (in `vite.config.ts`): an
+  alias of `@codingame/monaco-vscode-api/_virtual/main` → `src/shims/textmate-main.ts`,
+  and a transform rewriting the background tokenizer's `.then(n => n.main)` to
+  identity. Without them the build throws `applyStateStackDiff of undefined` at
+  runtime. Also: `resolve.dedupe` all `@codingame/*`, `target: esnext`,
+  `esbuild.minifySyntax: false`.
+- **Workers** are wired by *label* via `MonacoEnvironment.getWorkerUrl/getWorkerOptions`
+  using `?worker&url` imports (editor / extensionHost / TextMate). Enabling the
+  TextMate service disables Monarch, so any unsupported language falls back to
+  plaintext (acceptable; common dotfile languages are covered).
+- `editor.experimental.asyncTokenization: false` (main-thread tokenisation) is set
+  so small dotfiles colour without relying on the background-tokenisation worker.
 
 Data flow: `chezmoi managed --format json --path-style all` (+ `--include=dirs`) builds the
 tree; `chezmoi status -p absolute` → M/A/D/R badges; Diff = file on disk (original) vs
@@ -66,8 +110,9 @@ diff, Rich only for markdown/images. `defaultMode` picks the best tab on selecti
   locals into `.task`/`load(node:mode:)`; `onChange(node.id)` only resets `modeSelection = nil`.
   Don't reintroduce reads of `self.node` inside those closures.
 - **Templates**: source may be `*.tmpl`; the Edit tab shows raw template source (with a
-  "Template" badge). Diff/Rich use `chezmoi cat` so they show the rendered result — templates
-  are transparent there. `.tmpl` is stripped for syntax-highlight language detection.
+  "Template" badge), highlighted as its base language + Go-template injection (see the
+  highlighting section above). Diff/Rich use `chezmoi cat` so they show the rendered result —
+  templates are transparent there. `.tmpl` is stripped for syntax-highlight language detection.
 - **Rich View** renders the *target* (`chezmoi cat`), not the source. YAML frontmatter is
   parsed (`js-yaml`) into a table; markdown via `markdown-it` with `html:false` (XSS-safe).
 
