@@ -1,8 +1,9 @@
 # CLAUDE.md — ChezGUI dev notes
 
-Native macOS GUI for [chezmoi](https://www.chezmoi.io/). **Read-only MVP**: browse
-managed dotfiles as a tree, view colourised diffs / source / rich previews. No
-editing, saving, or `apply` yet. See `README.md` for the user-facing overview.
+Native macOS GUI for [chezmoi](https://www.chezmoi.io/). Browse managed dotfiles as
+a tree, view colourised diffs / rich previews, and **edit the source state** in the
+Edit tab (save writes directly to the chezmoi source file). No `chezmoi apply` yet.
+See `README.md` for the user-facing overview.
 
 ## Build & run (important workflow)
 
@@ -89,10 +90,33 @@ overlays `{{ … }}`.
   plaintext (acceptable; common dotfile languages are covered).
 - `editor.experimental.asyncTokenization: false` (main-thread tokenisation) is set
   so small dotfiles colour without relying on the background-tokenisation worker.
+- **Editor models MUST be held via `createModelReference`, NOT `monaco.editor.create
+  Model`.** With the full VS Code services, a plain `createModel` model is reference-
+  counted and **auto-disposed once nothing holds a reference** — a standalone
+  editor's `setModel`/`model:` does NOT count. The model got disposed right after
+  `showSource`/`showDiff`, throwing *"TextModel got disposed before DiffEditorWidget
+  model got reset"* and **blanking the editor on the first click/keystroke**. Fix
+  (`web/src/main.ts`): `getFileServiceOverride()` + a `RegisteredFileSystemProvider`
+  registered via `registerFileSystemOverlay`, then `makeModel()` writes content to a
+  unique `file:///chezgui/<seq>/<name>` virtual file and `createModelReference`s it;
+  we hold the ref (`currentDisposers`) and release it in `disposeCurrent`, which
+  disposes the model. `showDiff`/`showSource` are therefore **async**, guarded by a
+  `showGeneration` token so a superseded in-flight show bails instead of mounting.
+- **Diff disposal order**: in `disposeCurrent`, call `diffEditor.setModel(null)`
+  BEFORE releasing the model references — the DiffEditorWidget registers an
+  onWillDispose guard on its models that fires the same BugIndicatingError otherwise.
 
 Data flow: `chezmoi managed --format json --path-style all` (+ `--include=dirs`) builds the
 tree; `chezmoi status -p absolute` → M/A/D/R badges; Diff = file on disk (original) vs
 `chezmoi cat` (modified); Rich = render `chezmoi cat` (markdown) or base64 image data URI.
+
+Save flow (Edit tab): web posts `{type:"save", payload:{content}}` → `MonacoBridge`
+writes it **directly to `editableSourcePath`** (the `*.tmpl`/source file,
+`Data.write(atomically:)` — no `chezmoi` shell-out) → `markSaved()` back to JS +
+`onSaved` → `AppModel.refresh()` (re-resolves the selection by id so the editor
+session survives). Dirty state is web-tracked (`onDidChangeModelContent`) and mirrored
+to `MonacoBridge.isDirty`; navigation (sidebar + tabs) is gated through
+`ContentView.guardedNavigate` → a Save/Discard/Cancel `confirmationDialog`.
 
 Tabs are dynamic per file (`DetailView.availableModes`): Diff only when the file has a
 diff, Rich only for markdown/images. `defaultMode` picks the best tab on selection.
@@ -115,16 +139,25 @@ diff, Rich only for markdown/images. `defaultMode` picks the best tab on selecti
   (value-type snapshot). `DetailView` resolves node/mode in `body` and passes them as
   locals into `.task`/`load(node:mode:)`; `onChange(node.id)` only resets `modeSelection = nil`.
   Don't reintroduce reads of `self.node` inside those closures.
-- **Templates**: source may be `*.tmpl`; the Edit tab shows raw template source (with a
-  "Template" badge), highlighted as its base language + Go-template injection (see the
-  highlighting section above). Diff/Rich use `chezmoi cat` so they show the rendered result —
-  templates are transparent there. `.tmpl` is stripped for syntax-highlight language detection.
+- **Templates**: source may be `*.tmpl`; the Edit tab shows (and now **edits**) raw
+  template source (with a "Template" badge), highlighted as its base language +
+  Go-template injection (see the highlighting section above). Saving writes the raw
+  template text back to the source. Diff/Rich use `chezmoi cat` so they show the
+  rendered result — templates are transparent there. `.tmpl` is stripped for
+  syntax-highlight language detection.
+- **`MonacoBridge` is owned by `ContentView`** (one WebView), passed into `DetailView`
+  as `@ObservedObject`, so the sidebar's selection guard can read `bridge.isDirty`.
+  `WebViewHost` hosts the shared `bridge.webView` inside a throwaway container NSView
+  (re-attaching on update) — returning the reused WKWebView directly from `makeNSView`
+  lets a re-render (now triggered by `isDirty` changes) detach and blank it.
 - **Rich View** renders the *target* (`chezmoi cat`), not the source. YAML frontmatter is
   parsed (`js-yaml`) into a table; markdown via `markdown-it` with `html:false` (XSS-safe).
 
 ## Remaining / next phase (not started)
 
-- Editing: make the Edit tab writable → write back to source / `chezmoi edit`.
 - `chezmoi apply` (with confirmation dialog), `add` / `re-add` / `forget` / `merge`.
 - ③ side-by-side rendered "rich diff" (old vs new markdown) — deprioritised after the diff
   simplification; only do it if the user asks.
+
+Done (so not "remaining"): Editing the Edit tab → writes back to the source file (see
+the save flow + the model-reference gotcha above).

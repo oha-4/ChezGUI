@@ -4,8 +4,9 @@ A native macOS GUI for [chezmoi](https://www.chezmoi.io/) — browse your manage
 dotfiles as a tree and inspect them with colourised diffs, syntax-highlighted
 source, and rich previews.
 
-> **Read-only MVP.** ChezGUI does not edit, save, or run `apply` yet — it only
-> reads your chezmoi state via read-only commands. Editing and applying are the
+> **Early days.** ChezGUI can browse **and edit** your managed dotfiles (saving
+> straight back to the source state), but does not run `chezmoi apply` yet — so
+> edits take effect on your next apply. Applying and other write commands are the
 > next phase (see [Roadmap](#roadmap)).
 
 ![Platform](https://img.shields.io/badge/platform-macOS-blue)
@@ -18,9 +19,11 @@ source, and rich previews.
 - **Diff view** powered by a real diff editor: left = the file on disk
   (original), right = `chezmoi cat` (the rendered target). Side-by-side ⇄ inline
   toggle.
-- **Source view** with full VS Code TextMate syntax highlighting and themes.
-  chezmoi `*.tmpl` templates highlight their Go-template `{{ … }}` *inside*
-  string values via a TextMate injection grammar.
+- **Edit view** with full VS Code TextMate syntax highlighting and themes —
+  **editable**, with save (⌘S or the toolbar button) writing straight back to the
+  chezmoi source file. Unsaved changes prompt before you switch files or tabs.
+  chezmoi `*.tmpl` templates are editable as raw template text and highlight their
+  Go-template `{{ … }}` *inside* string values via a TextMate injection grammar.
 - **Rich view** for Markdown (rendered with `markdown-it`, YAML frontmatter
   parsed into a table) and images (inline preview).
 
@@ -40,7 +43,7 @@ ChezGUI/ (SwiftUI)
   ContentView      NavigationSplitView (sidebar tree + detail) + refresh toolbar
   Chezmoi/         ChezmoiClient (Process wrapper, read-only cmds) + ChezmoiModels
   Sidebar/         FileNode (tree builder), FileTreeView (sidebar list), StatusBadge
-  Detail/          DetailView (Diff/Source/Rich tabs), WebViewHost (WKWebView), WebBridge
+  Detail/          DetailView (Diff/Edit/Rich tabs), WebViewHost (WKWebView), WebBridge
 web/ (Vite + TS)   @codingame/monaco-vscode-api — the real VS Code TextMate +
                    theme services for diff/source highlighting, markdown-it for
                    rich previews. Served to the WKWebView over a custom app://
@@ -52,13 +55,17 @@ Highlighting is one unified pipeline built on `@codingame/monaco-vscode-api`
 lets `*.tmpl` files highlight Go-template syntax inside string values, which
 Shiki cannot do.
 
-### chezmoi commands used (all read-only)
+### chezmoi commands used (read-only)
 
 - `chezmoi managed --format json --path-style all` — tree of entries
 - `chezmoi managed --path-style relative --include=dirs` — dir/file classification
 - `chezmoi status -p absolute` — per-file `M / A / D / R`
 - `chezmoi cat <target>` — rendered target contents (diff right side, rich view)
-- `chezmoi source-path <target>` — source file path (source view)
+- `chezmoi source-path <target>` — source file path (edit view)
+
+Saving from the Edit tab writes the buffer **directly to the chezmoi source file**
+(it does not shell out to `chezmoi`), so the change is staged in your source state
+and takes effect on the next `chezmoi apply`.
 
 ## Build & run
 
@@ -95,7 +102,6 @@ rebuilding the app.
 
 ## Roadmap
 
-- Editing the source state from the app (`chezmoi edit` / write-back)
 - `chezmoi apply` (with a confirmation dialog), `add` / `re-add` / `forget` / `merge`
 - Side-by-side rendered "rich diff" (old vs new Markdown)
 
