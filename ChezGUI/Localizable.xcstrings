@@ -91,6 +91,16 @@
         }
       }
     },
+    "chezmoi’s source state for every managed file inside “%@” will be overwritten with the current files on disk, making the on-disk versions the source of truth. Templates are skipped." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」内のすべての管理対象ファイルの chezmoi ソースステートを、現在ディスク上にあるファイルの内容で上書きします。ディスク上の内容が正となります。テンプレートはスキップされます。"
+          }
+        }
+      }
+    },
     "Each theme follows your system's light/dark appearance." : {
       "localizations" : {
         "ja" : {
@@ -163,12 +173,33 @@
         }
       }
     },
+    "Re-add Folder from Disk…" : {
+      "comment" : "Context-menu item: re-add every managed file in the folder from disk",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォルダをディスクから再追加…"
+          }
+        }
+      }
+    },
     "Re-add this file from disk?" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "このファイルをディスクから再追加しますか？"
+          }
+        }
+      }
+    },
+    "Re-add this folder from disk?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このフォルダをディスクから再追加しますか？"
           }
         }
       }
@@ -225,12 +256,33 @@
         }
       }
     },
+    "Stop Managing Folder (Forget)…" : {
+      "comment" : "Context-menu item: remove a folder (and all files inside) from chezmoi management, leaving the on-disk files",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォルダの管理をやめる（Forget）…"
+          }
+        }
+      }
+    },
     "Stop managing this file?" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "このファイルの管理をやめますか？"
+          }
+        }
+      }
+    },
+    "Stop managing this folder?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このフォルダの管理をやめますか？"
           }
         }
       }
@@ -283,6 +335,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「%@」を chezmoi のソースステートから削除します。ディスク上のファイルはそのまま残ります。"
+          }
+        }
+      }
+    },
+    "“%@” and every managed file inside it will be removed from chezmoi’s source state. The files on disk are left untouched." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」とその中のすべての管理対象ファイルを chezmoi のソースステートから削除します。ディスク上のファイルはそのまま残ります。"
           }
         }
       }

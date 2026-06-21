@@ -30,7 +30,7 @@ struct FileTreeView: View {
         }
         .listStyle(.sidebar)
         .confirmationDialog(
-            "Stop managing this file?",
+            forgetTarget?.isDir == true ? "Stop managing this folder?" : "Stop managing this file?",
             isPresented: Binding(
                 get: { forgetTarget != nil },
                 set: { if !$0 { forgetTarget = nil } }
@@ -41,10 +41,14 @@ struct FileTreeView: View {
             Button("Stop Managing", role: .destructive) { onForget(node) }
             Button("Cancel", role: .cancel) {}
         } message: { node in
-            Text("“\(node.name)” will be removed from chezmoi’s source state. The file on disk is left untouched.")
+            if node.isDir {
+                Text("“\(node.name)” and every managed file inside it will be removed from chezmoi’s source state. The files on disk are left untouched.")
+            } else {
+                Text("“\(node.name)” will be removed from chezmoi’s source state. The file on disk is left untouched.")
+            }
         }
         .confirmationDialog(
-            "Re-add this file from disk?",
+            reAddTarget?.isDir == true ? "Re-add this folder from disk?" : "Re-add this file from disk?",
             isPresented: Binding(
                 get: { reAddTarget != nil },
                 set: { if !$0 { reAddTarget = nil } }
@@ -55,7 +59,11 @@ struct FileTreeView: View {
             Button("Re-add", role: .destructive) { onReAdd(node) }
             Button("Cancel", role: .cancel) {}
         } message: { node in
-            Text("chezmoi’s source state for “\(node.name)” will be overwritten with the current file on disk, making the on-disk version the source of truth.")
+            if node.isDir {
+                Text("chezmoi’s source state for every managed file inside “\(node.name)” will be overwritten with the current files on disk, making the on-disk versions the source of truth. Templates are skipped.")
+            } else {
+                Text("chezmoi’s source state for “\(node.name)” will be overwritten with the current file on disk, making the on-disk version the source of truth.")
+            }
         }
     }
 
@@ -71,6 +79,19 @@ struct FileTreeView: View {
                     row(node)
                         .contentShape(Rectangle())
                         .onTapGesture { toggle(node.id) }
+                        .contextMenu {
+                            Button("Reveal in Finder") { revealInFinder(node) }
+                            Divider()
+                            // Re-add re-adds every managed file in the folder;
+                            // chezmoi skips templates and no-op files, so only
+                            // offer it when something inside actually changed.
+                            if node.hasChangedDescendant {
+                                Button("Re-add Folder from Disk…") { reAddTarget = node }
+                            }
+                            Button("Stop Managing Folder (Forget)…", role: .destructive) {
+                                forgetTarget = node
+                            }
+                        }
                 }
             )
         } else {
