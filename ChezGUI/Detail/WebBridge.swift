@@ -74,6 +74,20 @@ final class MonacoBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     /// + showDiff — can't clobber each other during startup.
     private var pendingScripts: [String] = []
 
+    /// True when the editable source buffer differs from the last-saved value.
+    /// Reported by the web side; drives the unsaved-changes navigation guard.
+    @Published var isDirty = false
+    /// Last write error, surfaced as an alert; cleared on the next successful save.
+    @Published var saveError: String?
+
+    /// Absolute path the Edit tab writes back to (the chezmoi source-state file),
+    /// or `nil` when the current view isn't an editable source (Diff/Rich/empty).
+    private var editableSourcePath: String?
+
+    /// Invoked after a successful save so the app can refresh status/diff (the
+    /// source changed, so `chezmoi status`/`cat` output may differ).
+    var onSaved: (() -> Void)?
+
     override init() {
         let config = WKWebViewConfiguration()
         let handler = AppSchemeHandler()
@@ -107,8 +121,45 @@ final class MonacoBridge: NSObject, ObservableObject, WKScriptMessageHandler {
             pendingScripts.removeAll()
         case "log":
             if let payload = body["payload"] { print("[web] \(payload)") }
+        case "dirty":
+            isDirty = (body["payload"] as? Bool) ?? false
+        case "save":
+            if let payload = body["payload"] as? [String: Any],
+               let content = payload["content"] as? String {
+                saveSource(content)
+            }
         default:
             break
+        }
+    }
+
+    // MARK: - Save
+
+    /// The view is now showing an editable source at `path` (Edit tab), or `nil`
+    /// for a non-editable view. Resets dirty state for the freshly loaded buffer.
+    func setEditableSource(_ path: String?) {
+        editableSourcePath = path
+        isDirty = false
+    }
+
+    /// Ask the web side to post its current buffer back for saving. Used by the
+    /// unsaved-changes dialog's "Save" action.
+    func requestSave() {
+        evaluate("window.chezgui.requestSave && window.chezgui.requestSave();")
+    }
+
+    /// Write the edited buffer to the source file, then tell the web side it's
+    /// clean and let the app refresh. Surfaces failures via `saveError`.
+    private func saveSource(_ content: String) {
+        guard let path = editableSourcePath else { return }
+        do {
+            try Data(content.utf8).write(to: URL(fileURLWithPath: path), options: .atomic)
+            isDirty = false
+            saveError = nil
+            evaluate("window.chezgui.markSaved && window.chezgui.markSaved();")
+            onSaved?()
+        } catch {
+            saveError = error.localizedDescription
         }
     }
 
@@ -154,7 +205,11 @@ final class MonacoBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         guard let data = try? JSONSerialization.data(withJSONObject: [arg], options: []),
               let json = String(data: data, encoding: .utf8) else { return }
         // json is a one-element array literal; unwrap to the single argument.
-        let script = "window.chezgui.\(fn).apply(null, \(json));"
+        evaluate("window.chezgui.\(fn).apply(null, \(json));")
+    }
+
+    /// Run a script now, or buffer it until the page reports `ready`.
+    private func evaluate(_ script: String) {
         if isReady {
             webView.evaluateJavaScript(script)
         } else {

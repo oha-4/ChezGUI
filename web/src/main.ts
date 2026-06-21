@@ -25,6 +25,17 @@ import getConfigurationServiceOverride, {
   initUserConfiguration,
 } from "@codingame/monaco-vscode-configuration-service-override";
 import getExtensionServiceOverride from "@codingame/monaco-vscode-extensions-service-override";
+// File service + an in-memory filesystem so editor buffers are backed by model
+// REFERENCES. With the full VS Code services, a plain monaco.editor.createModel
+// is auto-disposed once unreferenced (a standalone editor doesn't hold a service
+// reference), which blanked the editor. createModelReference keeps the model
+// alive until we release the reference.
+import getFileServiceOverride, {
+  RegisteredFileSystemProvider,
+  RegisteredMemoryFile,
+  registerFileSystemOverlay,
+} from "@codingame/monaco-vscode-files-service-override";
+import { createModelReference } from "@codingame/monaco-vscode-api/monaco";
 
 // Default VS Code extensions: each registers a language + TextMate grammar.
 // (Side-effect imports; we await their `whenReady` below.)
@@ -88,6 +99,7 @@ const t = {
   noFileSelected: isJa ? "ファイルが選択されていません" : "No file selected",
   switchToInline: isJa ? "インライン差分に切り替え" : "Switch to inline diff",
   switchToSideBySide: isJa ? "サイドバイサイド差分に切り替え" : "Switch to side-by-side diff",
+  save: isJa ? "保存 (⌘S)" : "Save (⌘S)",
 };
 placeholder.textContent = t.noFileSelected;
 
@@ -107,6 +119,51 @@ let current: (monaco.editor.IStandaloneCodeEditor | monaco.editor.IStandaloneDif
 
 // Diff layout preference (side-by-side vs inline), owned by the web side.
 let diffLayout: "inline" | "sidebyside" = "sidebyside";
+
+// ---- editable source state ----------------------------------------------
+// The Edit tab's editor (when editable), its last-saved value, and whether the
+// buffer currently differs from it. Dirty transitions are reported to native.
+let srcEditor: monaco.editor.IStandaloneCodeEditor | null = null;
+let srcCleanValue = "";
+let srcDirty = false;
+
+// In-memory filesystem backing editor models (registered in bootstrap).
+let fsProvider: RegisteredFileSystemProvider | null = null;
+// Monotonic counter for unique virtual file paths (never reused).
+let modelSeq = 0;
+// Disposers for the model references / files backing the current editor; run on
+// disposeCurrent so the underlying models are released (and then disposed).
+let currentDisposers: Array<() => void> = [];
+// Bumped on every disposeCurrent so an in-flight async show() can detect it was
+// superseded (model resolution is async) and bail out instead of mounting stale.
+let showGeneration = 0;
+
+/** Create a model backed by a fresh virtual file, returning it plus a disposer. */
+async function makeModel(
+  content: string,
+  lang: string,
+  label: string
+): Promise<{ model: monaco.editor.ITextModel; dispose: () => void }> {
+  const uri = monaco.Uri.file(`/chezgui/${++modelSeq}/${label}`);
+  const fileDisposable = fsProvider!.registerFile(new RegisteredMemoryFile(uri, content));
+  const ref = await createModelReference(uri);
+  const model = ref.object.textEditorModel as monaco.editor.ITextModel;
+  monaco.editor.setModelLanguage(model, lang);
+  return {
+    model,
+    dispose: () => {
+      ref.dispose();
+      fileDisposable.dispose();
+    },
+  };
+}
+
+/** Last path segment, for a readable virtual filename (uniqueness comes from the
+ *  per-model counter, so collisions don't matter). */
+function baseName(path: string): string {
+  const seg = path.split("/").pop();
+  return seg && seg.length > 0 ? seg : "file";
+}
 
 // ---- bridge to native (JS -> Swift) -------------------------------------
 type BridgeMessage = { type: string; payload?: unknown };
@@ -279,23 +336,71 @@ function detectLanguage(path: string, explicit?: string, content?: string): stri
 
 // ---- rendering ----------------------------------------------------------
 function disposeCurrent() {
+  // Invalidate any in-flight async show().
+  showGeneration++;
   if (current) {
-    const editor = current as monaco.editor.IStandaloneDiffEditor;
-    const model = editor.getModel?.();
-    if (model && "original" in model) {
-      model.original?.dispose();
-      model.modified?.dispose();
-    } else {
-      (current as monaco.editor.IStandaloneCodeEditor).getModel()?.dispose();
-    }
-    current.dispose();
+    const editor = current;
     current = null;
+    // Detach models from the diff widget first so its onWillDispose guard is
+    // removed before the models are released ("TextModel got disposed before
+    // DiffEditorWidget model got reset" otherwise blanks the view).
+    const model = (editor as monaco.editor.IStandaloneDiffEditor).getModel?.();
+    if (model && "original" in model) {
+      (editor as monaco.editor.IStandaloneDiffEditor).setModel(null);
+    }
+    editor.dispose();
   }
+  // Release the model references AFTER the editor is gone; the model service then
+  // disposes the underlying models (they live only as long as a reference does).
+  for (const dispose of currentDisposers.splice(0)) {
+    try {
+      dispose();
+    } catch {
+      /* best-effort */
+    }
+  }
+  // The editable-source refs point into `current`; drop them too. We don't post
+  // a dirty:false here — native ownership of dirty state is reset explicitly via
+  // setEditableSource when a new source loads (or after a confirmed discard).
+  srcEditor = null;
+  srcDirty = false;
+  srcCleanValue = "";
+}
+
+// ---- save / dirty (JS <-> native) ---------------------------------------
+/** Recompute dirty vs the last-saved value; report only on transitions. */
+function updateDirty() {
+  if (!srcEditor) return;
+  const dirty = srcEditor.getValue() !== srcCleanValue;
+  if (dirty === srcDirty) return;
+  srcDirty = dirty;
+  if (saveBtn) saveBtn.disabled = !dirty;
+  postNative({ type: "dirty", payload: dirty });
+}
+
+/** Ask native to write the current buffer to the source file. */
+function requestSave() {
+  if (!srcEditor) return;
+  postNative({ type: "save", payload: { content: srcEditor.getValue() } });
+}
+
+/** Native -> web: the write succeeded; adopt the current buffer as clean. */
+function markSaved() {
+  if (!srcEditor) return;
+  srcCleanValue = srcEditor.getValue();
+  srcDirty = false;
+  if (saveBtn) saveBtn.disabled = true;
+  postNative({ type: "dirty", payload: false });
+}
+
+/** Native -> web: current editor text (or null when no editor is shown). */
+function getEditorContent(): string | null {
+  return srcEditor ? srcEditor.getValue() : null;
 }
 
 function showPlaceholder(text: string) {
   disposeCurrent();
-  setToolbarVisible(false);
+  setToolbarMode("none");
   rich.innerHTML = "";
   placeholder.textContent = text;
   setActivePane("placeholder");
@@ -320,10 +425,15 @@ function applyDiffOptions() {
 const ICON = {
   sideBySide: `<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="5.5" height="11" rx="1"/><rect x="9" y="2.5" width="5.5" height="11" rx="1"/></svg>`,
   inline: `<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="2.5" width="13" height="11" rx="1"/><line x1="4" y1="6" x2="12" y2="6"/><line x1="4" y1="10" x2="12" y2="10"/></svg>`,
+  save: `<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 2.5h7.5L13.5 5.5V13a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5V3a.5.5 0 0 1 .5-.5z"/><path d="M5 2.5v3.5h5V2.5"/><rect x="4.5" y="9" width="7" height="4.5"/></svg>`,
 };
 
+// The toolbar overlay is shared by Diff (layout toggle) and Edit (save). At most
+// one button is visible at a time; "none" hides the whole bar.
+type ToolbarMode = "diff" | "edit" | "none";
 let toolbar: HTMLElement | null = null;
 let layoutBtn: HTMLButtonElement | null = null;
+let saveBtn: HTMLButtonElement | null = null;
 
 function buildToolbar() {
   const style = document.createElement("style");
@@ -346,6 +456,8 @@ function buildToolbar() {
       color: var(--tb-active-fg, #ffffff);
       background: var(--tb-active-bg, rgba(10,132,255,0.85));
     }
+    #toolbar button:disabled { opacity: 0.4; cursor: default; }
+    #toolbar button:disabled:hover { background: var(--tb-bg, rgba(120,120,120,0.16)); }
     @media (prefers-color-scheme: light) {
       #toolbar button { --tb-fg:#444; --tb-bg:rgba(0,0,0,0.06); --tb-hover:rgba(0,0,0,0.12); --tb-active-fg:#fff; }
     }
@@ -362,7 +474,13 @@ function buildToolbar() {
     updateToolbarUI();
   });
 
-  toolbar.append(layoutBtn);
+  saveBtn = document.createElement("button");
+  saveBtn.innerHTML = ICON.save;
+  saveBtn.title = t.save;
+  saveBtn.disabled = true;
+  saveBtn.addEventListener("click", () => requestSave());
+
+  toolbar.append(layoutBtn, saveBtn);
   document.body.appendChild(toolbar);
 }
 
@@ -374,9 +492,15 @@ function updateToolbarUI() {
   layoutBtn.title = goingToInline ? t.switchToInline : t.switchToSideBySide;
 }
 
-function setToolbarVisible(visible: boolean) {
+function setToolbarMode(mode: ToolbarMode) {
   if (!toolbar) return;
-  toolbar.style.display = visible ? "flex" : "none";
+  if (mode === "none") {
+    toolbar.style.display = "none";
+    return;
+  }
+  toolbar.style.display = "flex";
+  if (layoutBtn) layoutBtn.style.display = mode === "diff" ? "inline-flex" : "none";
+  if (saveBtn) saveBtn.style.display = mode === "edit" ? "inline-flex" : "none";
 }
 
 interface DiffArgs {
@@ -385,10 +509,22 @@ interface DiffArgs {
   original: string; // destination (current file on disk)
   modified: string; // target (chezmoi cat)
 }
-function showDiff(args: DiffArgs) {
+async function showDiff(args: DiffArgs) {
   disposeCurrent();
-  setActivePane("editor");
+  const gen = showGeneration;
   const lang = detectLanguage(args.path, args.language, args.modified || args.original);
+  const name = baseName(args.path);
+  const [original, modified] = await Promise.all([
+    makeModel(args.original, lang, `original-${name}`),
+    makeModel(args.modified, lang, `modified-${name}`),
+  ]);
+  if (gen !== showGeneration) {
+    // A newer show()/clear() superseded us while resolving models.
+    original.dispose();
+    modified.dispose();
+    return;
+  }
+  setActivePane("editor");
   const editor = monaco.editor.createDiffEditor(root, {
     theme: currentTheme(),
     automaticLayout: true,
@@ -401,13 +537,11 @@ function showDiff(args: DiffArgs) {
     scrollBeyondLastLine: false,
     ...diffEditorOptions(),
   });
-  editor.setModel({
-    original: monaco.editor.createModel(args.original, lang),
-    modified: monaco.editor.createModel(args.modified, lang),
-  });
+  editor.setModel({ original: original.model, modified: modified.model });
   current = editor as any;
+  currentDisposers.push(original.dispose, modified.dispose);
   updateToolbarUI();
-  setToolbarVisible(true);
+  setToolbarMode("diff");
 }
 
 interface SourceArgs {
@@ -416,25 +550,43 @@ interface SourceArgs {
   content: string;
   readOnly?: boolean;
 }
-function showSource(args: SourceArgs) {
+async function showSource(args: SourceArgs) {
   disposeCurrent();
-  setToolbarVisible(false);
-  setActivePane("editor");
+  const gen = showGeneration;
   // The Edit tab shows the raw source. For templates that's the base language
   // (json/yaml/…) with Go-template `{{ … }}` actions; the injectTo grammar
   // overlays those automatically, so no special "gotmpl" handling is needed.
   const lang = detectLanguage(args.path, args.language, args.content);
+  const readOnly = args.readOnly ?? true;
+  const m = await makeModel(args.content, lang, baseName(args.path));
+  if (gen !== showGeneration) {
+    m.dispose();
+    return;
+  }
+  setActivePane("editor");
   const editor = monaco.editor.create(root, {
-    value: args.content,
-    language: lang,
+    model: m.model,
     theme: currentTheme(),
     automaticLayout: true,
-    readOnly: args.readOnly ?? true,
+    readOnly,
     fontSize: 12,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
   });
   current = editor as any;
+  currentDisposers.push(m.dispose);
+  srcEditor = editor;
+  srcCleanValue = args.content;
+  srcDirty = false;
+  if (readOnly) {
+    setToolbarMode("none");
+    return;
+  }
+  // Editable: track dirty state, expose Cmd-S, and show the save button.
+  editor.onDidChangeModelContent(() => updateDirty());
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => requestSave());
+  if (saveBtn) saveBtn.disabled = true;
+  setToolbarMode("edit");
 }
 
 function escapeHtml(s: string): string {
@@ -492,7 +644,7 @@ interface RichArgs {
 }
 function showRich(args: RichArgs) {
   disposeCurrent();
-  setToolbarVisible(false);
+  setToolbarMode("none");
   const { data, body } = splitFrontmatter(args.markdown);
   const fm = data ? renderFrontmatterTable(data) : "";
   rich.innerHTML = `<div class="md-body">${fm}${md.render(body)}</div>`;
@@ -506,7 +658,7 @@ interface ImageArgs {
 }
 function showImage(args: ImageArgs) {
   disposeCurrent();
-  setToolbarVisible(false);
+  setToolbarMode("none");
   const safeAlt = args.path.replace(/"/g, "&quot;");
   rich.innerHTML = `<div class="img-wrap"><img src="${args.dataUri}" alt="${safeAlt}" /></div>`;
   rich.scrollTop = 0;
@@ -581,6 +733,9 @@ function injectRichStyles() {
   showRich,
   showImage,
   setTheme,
+  requestSave,
+  markSaved,
+  getEditorContent,
   clear: showPlaceholder,
 };
 
@@ -649,6 +804,7 @@ async function bootstrap() {
   );
 
   await initialize({
+    ...getFileServiceOverride(),
     ...getExtensionServiceOverride(),
     ...getModelServiceOverride(),
     ...getConfigurationServiceOverride(),
@@ -656,6 +812,11 @@ async function bootstrap() {
     ...getTextMateServiceOverride(),
     ...getThemeServiceOverride(),
   });
+
+  // Back editor buffers with an in-memory filesystem so models can be held via
+  // references (see makeModel) instead of being auto-disposed when unreferenced.
+  fsProvider = new RegisteredFileSystemProvider(false);
+  registerFileSystemOverlay(1, fsProvider);
 
   await Promise.all([
     ext.whenReady?.(),

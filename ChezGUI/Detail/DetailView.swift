@@ -14,7 +14,12 @@ enum ViewMode: String, Identifiable {
 struct DetailView: View {
     let node: FileNode?
     let client: ChezmoiClient
-    @StateObject private var bridge = MonacoBridge()
+    /// Owned by `ContentView` (single WebView) so the unsaved-changes guard can
+    /// observe dirty state from the navigation sites too.
+    @ObservedObject var bridge: MonacoBridge
+    /// Runs `action` immediately, or defers it behind the unsaved-changes dialog
+    /// when the Edit buffer is dirty. Used to guard tab switches.
+    let guardedNavigate: (@escaping () -> Void) -> Void
 
     /// Selected colour-theme palette, shared with the Settings window via the
     /// same UserDefaults key. The web side resolves light/dark automatically.
@@ -83,9 +88,10 @@ struct DetailView: View {
     private func header(node: FileNode?, modes: [ViewMode], resolved: ViewMode) -> some View {
         HStack(spacing: 12) {
             if !modes.isEmpty {
+                let modeBinding = $modeSelection
                 Picker("", selection: Binding(
                     get: { resolved },
-                    set: { modeSelection = $0 }
+                    set: { newMode in guardedNavigate { modeBinding.wrappedValue = newMode } }
                 )) {
                     ForEach(modes) { Text($0.rawValue).tag($0) }
                 }
@@ -125,10 +131,12 @@ struct DetailView: View {
 
     private func load(node: FileNode?, mode: ViewMode) async {
         guard let node else {
+            bridge.setEditableSource(nil)
             bridge.clear(String(localized: "No file selected"))
             return
         }
         guard !node.isDir else {
+            bridge.setEditableSource(nil)
             bridge.clear(String(localized: "Select a file to view its diff"))
             return
         }
@@ -144,6 +152,7 @@ struct DetailView: View {
     }
 
     private func loadDiff(_ node: FileNode) async {
+        bridge.setEditableSource(nil) // Diff is read-only.
         // Destination = current file on disk; Target = chezmoi cat output.
         guard let original = readText(atPath: node.absolutePath) else {
             bridge.clear(String(localized: "Binary or unreadable file — diff not shown"))
@@ -163,23 +172,27 @@ struct DetailView: View {
     }
 
     private func loadSource(_ node: FileNode) async {
-        // Show the raw source-state file (what you'd edit). Read-only in MVP.
+        // Show the raw source-state file (what you edit and save back to).
         guard let content = readText(atPath: node.sourceAbsolute) else {
+            bridge.setEditableSource(nil)
             bridge.clear(String(localized: "Binary or unreadable source file"))
             return
         }
-        // Edit shows the raw source. Templates (*.tmpl) are highlighted as their
-        // base language (json/yaml/…) with Go-template `{{ … }}` overlaid by the
-        // injection grammar on the web side, so no special language is needed.
+        // Editable: writes go back to the source path. Templates (*.tmpl) are
+        // editable as raw template text and highlighted as their base language
+        // (json/yaml/…) with Go-template `{{ … }}` overlaid by the injection
+        // grammar on the web side, so no special language is needed.
+        bridge.setEditableSource(node.sourceAbsolute)
         bridge.showSource(
             path: node.relativePath,
             language: nil,
             content: content,
-            readOnly: true
+            readOnly: false
         )
     }
 
     private func loadRich(_ node: FileNode) async {
+        bridge.setEditableSource(nil) // Rich view renders the target, not editable.
         if node.isMarkdown {
             do {
                 let markdown = try await client.cat(target: node.absolutePath)
