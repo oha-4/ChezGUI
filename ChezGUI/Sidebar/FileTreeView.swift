@@ -10,7 +10,17 @@ import SwiftUI
 struct FileTreeView: View {
     let nodes: [FileNode]
     @Binding var selection: FileNode?
+    /// Invoked to stop managing a file (`chezmoi forget`). The actual file on
+    /// disk is left untouched.
+    let onForget: (FileNode) -> Void
+    /// Invoked to re-add a file (`chezmoi re-add`): overwrite the source state
+    /// with the on-disk file. Never offered for templates.
+    let onReAdd: (FileNode) -> Void
     @State private var expanded: Set<String> = []
+    /// The file pending a forget confirmation, or nil when no dialog is shown.
+    @State private var forgetTarget: FileNode?
+    /// The file pending a re-add confirmation, or nil when no dialog is shown.
+    @State private var reAddTarget: FileNode?
 
     var body: some View {
         List(selection: $selection) {
@@ -19,6 +29,34 @@ struct FileTreeView: View {
             }
         }
         .listStyle(.sidebar)
+        .confirmationDialog(
+            "Stop managing this file?",
+            isPresented: Binding(
+                get: { forgetTarget != nil },
+                set: { if !$0 { forgetTarget = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: forgetTarget
+        ) { node in
+            Button("Stop Managing", role: .destructive) { onForget(node) }
+            Button("Cancel", role: .cancel) {}
+        } message: { node in
+            Text("“\(node.name)” will be removed from chezmoi’s source state. The file on disk is left untouched.")
+        }
+        .confirmationDialog(
+            "Re-add this file from disk?",
+            isPresented: Binding(
+                get: { reAddTarget != nil },
+                set: { if !$0 { reAddTarget = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: reAddTarget
+        ) { node in
+            Button("Re-add", role: .destructive) { onReAdd(node) }
+            Button("Cancel", role: .cancel) {}
+        } message: { node in
+            Text("chezmoi’s source state for “\(node.name)” will be overwritten with the current file on disk, making the on-disk version the source of truth.")
+        }
     }
 
     // Returns AnyView to break the opaque-type self-reference in the recursion.
@@ -42,6 +80,15 @@ struct FileTreeView: View {
                     .contextMenu {
                         Button("Open with Default App") { open(node) }
                         Button("Reveal in Finder") { revealInFinder(node) }
+                        Divider()
+                        // Re-add only makes sense when the on-disk file differs
+                        // from the source, and chezmoi never re-adds templates.
+                        if node.hasDiff && !node.isTemplate {
+                            Button("Re-add from Disk…") { reAddTarget = node }
+                        }
+                        Button("Stop Managing (Forget)…", role: .destructive) {
+                            forgetTarget = node
+                        }
                     }
             )
         }

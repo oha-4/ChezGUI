@@ -1,9 +1,10 @@
 # CLAUDE.md — ChezGUI dev notes
 
 Native macOS GUI for [chezmoi](https://www.chezmoi.io/). Browse managed dotfiles as
-a tree, view colourised diffs / rich previews, and **edit the source state** in the
-Edit tab (save writes directly to the chezmoi source file). No `chezmoi apply` yet.
-See `README.md` for the user-facing overview.
+a tree, view colourised diffs / rich previews, **edit the source state** in the
+Edit tab (save writes directly to the chezmoi source file), and **manage membership**
+from the sidebar right-click menu (`chezmoi forget` / `re-add`). No `chezmoi apply`
+yet. See `README.md` for the user-facing overview.
 
 ## Build & run (important workflow)
 
@@ -34,7 +35,7 @@ open build/Debug/ChezGUI.app
 ```
 ChezGUI/ (SwiftUI)
   ContentView      NavigationSplitView (sidebar tree + detail) + refresh toolbar
-  Chezmoi/         ChezmoiClient (Process wrapper, read-only cmds) + ChezmoiModels
+  Chezmoi/         ChezmoiClient (Process wrapper; read-only cmds + forget/re-add) + ChezmoiModels
   Sidebar/         FileNode (tree builder), FileTreeView (.sidebar list), StatusBadge
   Detail/          DetailView (Diff/Edit/Rich tabs), WebViewHost (WKWebView), WebBridge
 web/ (Vite + TS)   monaco-vscode-api (real VS Code TextMate + theme services) for
@@ -110,6 +111,15 @@ Data flow: `chezmoi managed --format json --path-style all` (+ `--include=dirs`)
 tree; `chezmoi status -p absolute` → M/A/D/R badges; Diff = file on disk (original) vs
 `chezmoi cat` (modified); Rich = render `chezmoi cat` (markdown) or base64 image data URI.
 
+Membership commands (sidebar right-click; `ChezmoiClient` mutating section, `AppModel`
+actions, `FileTreeView` context menu + a `confirmationDialog` per action):
+- `chezmoi forget --force <target>` — stop managing a file; **leaves the on-disk file**.
+  `--force` is required (no TTY for the prompt). Offered for every file.
+- `chezmoi re-add <target>` — overwrite the source state from the on-disk file (make the
+  destination the source of truth). Offered **only when `node.hasDiff && !node.isTemplate`**:
+  re-add is a no-op without changes, and chezmoi never re-adds templates (would clobber the
+  `{{ … }}` with rendered output). Both run `await model.<action>` → `refresh()`.
+
 Save flow (Edit tab): web posts `{type:"save", payload:{content}}` → `MonacoBridge`
 writes it **directly to `editableSourcePath`** (the `*.tmpl`/source file,
 `Data.write(atomically:)` — no `chezmoi` shell-out) → `markSaved()` back to JS +
@@ -155,9 +165,12 @@ diff, Rich only for markdown/images. `defaultMode` picks the best tab on selecti
 
 ## Remaining / next phase (not started)
 
-- `chezmoi apply` (with confirmation dialog), `add` / `re-add` / `forget` / `merge`.
+- `chezmoi apply` (with confirmation dialog), `add` / `merge`.
 - ③ side-by-side rendered "rich diff" (old vs new markdown) — deprioritised after the diff
   simplification; only do it if the user asks.
 
-Done (so not "remaining"): Editing the Edit tab → writes back to the source file (see
-the save flow + the model-reference gotcha above).
+Done (so not "remaining"):
+- Editing the Edit tab → writes back to the source file (see the save flow + the
+  model-reference gotcha above).
+- `forget` / `re-add` from the sidebar right-click menu (see the membership commands
+  under Data flow).

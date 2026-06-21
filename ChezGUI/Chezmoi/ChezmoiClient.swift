@@ -160,4 +160,20 @@ actor ChezmoiClient {
         try run(["source-path", target])
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    // MARK: - Mutating commands
+
+    /// Stop managing a target: removes it from the source state but leaves the
+    /// actual file in the destination directory untouched. `--force` skips the
+    /// interactive confirmation prompt (we run without a TTY).
+    func forget(target: String) throws {
+        _ = try run(["forget", "--force", target])
+    }
+
+    /// Re-add a target: overwrite the source state with the current on-disk
+    /// file, making the destination the source of truth. chezmoi itself never
+    /// overwrites templates, and callers should not offer this for `*.tmpl`.
+    func reAdd(target: String) throws {
+        _ = try run(["re-add", target])
+    }
 }

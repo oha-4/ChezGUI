@@ -21,6 +21,16 @@
         }
       }
     },
+    "Cancel" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        }
+      }
+    },
     "chezmoi %@ failed: %@" : {
       "localizations" : {
         "ja" : {
@@ -67,6 +77,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "chezmoi 実行ファイルが見つかりません。インストールして（例: `brew install chezmoi`）から再度お試しください。"
+          }
+        }
+      }
+    },
+    "chezmoi’s source state for “%@” will be overwritten with the current file on disk, making the on-disk version the source of truth." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」の chezmoi ソースステートを、現在ディスク上にあるファイルの内容で上書きします。ディスク上の内容が正となります。"
           }
         }
       }
@@ -121,6 +141,38 @@
         }
       }
     },
+    "Re-add" : {
+      "comment" : "Confirmation button to re-add a file's on-disk contents into the chezmoi source state",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再追加"
+          }
+        }
+      }
+    },
+    "Re-add from Disk…" : {
+      "comment" : "Context-menu item: overwrite the source state with the on-disk file",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスクから再追加…"
+          }
+        }
+      }
+    },
+    "Re-add this file from disk?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルをディスクから再追加しますか？"
+          }
+        }
+      }
+    },
     "Reload managed files and status" : {
       "localizations" : {
         "ja" : {
@@ -147,6 +199,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "差分を表示するファイルを選択してください"
+          }
+        }
+      }
+    },
+    "Stop Managing" : {
+      "comment" : "Confirmation button to stop managing a file (chezmoi forget)",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理をやめる"
+          }
+        }
+      }
+    },
+    "Stop Managing (Forget)…" : {
+      "comment" : "Context-menu item: remove a file from chezmoi management, leaving the on-disk file",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理をやめる（Forget）…"
+          }
+        }
+      }
+    },
+    "Stop managing this file?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルの管理をやめますか？"
           }
         }
       }
@@ -189,6 +273,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このファイルは chezmoi が Go テンプレート (*.tmpl) からレンダリングします。Edit タブにはテンプレートのソースがそのまま表示されます。"
+          }
+        }
+      }
+    },
+    "“%@” will be removed from chezmoi’s source state. The file on disk is left untouched." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を chezmoi のソースステートから削除します。ディスク上のファイルはそのまま残ります。"
           }
         }
       }

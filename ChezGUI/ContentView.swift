@@ -28,6 +28,31 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Stop managing a file: `chezmoi forget` removes it from the source state
+    /// but leaves the actual file on disk. Clears the selection if it was the
+    /// forgotten file (it disappears from the tree) and reloads.
+    func forget(_ node: FileNode) async {
+        do {
+            try await client.forget(target: node.absolutePath)
+            if selection?.id == node.id { selection = nil }
+            await refresh()
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Re-add a file: `chezmoi re-add` overwrites the source state with the
+    /// current on-disk file (the destination becomes the source of truth). The
+    /// diff disappears afterwards, so we reload. Never called for templates.
+    func reAdd(_ node: FileNode) async {
+        do {
+            try await client.reAdd(target: node.absolutePath)
+            await refresh()
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
     /// Depth-first lookup of a node by its stable id (relative path).
     private static func node(withId id: FileNode.ID, in nodes: [FileNode]) -> FileNode? {
         for node in nodes {
@@ -54,10 +79,15 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            FileTreeView(nodes: model.nodes, selection: Binding(
-                get: { model.selection },
-                set: { newValue in guardedNavigate { model.selection = newValue } }
-            ))
+            FileTreeView(
+                nodes: model.nodes,
+                selection: Binding(
+                    get: { model.selection },
+                    set: { newValue in guardedNavigate { model.selection = newValue } }
+                ),
+                onForget: { node in Task { await model.forget(node) } },
+                onReAdd: { node in Task { await model.reAdd(node) } }
+            )
             .navigationSplitViewColumnWidth(min: 220, ideal: 280)
         } detail: {
             DetailView(
