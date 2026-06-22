@@ -181,7 +181,20 @@ actor ChezmoiClient {
     /// on disk (the source becomes the source of truth). `--force` skips the
     /// interactive prompt (we run without a TTY). Templates apply fine, so this
     /// is offered for any changed target. A no-op without a diff.
+    ///
+    /// `chezmoi apply <target>` does NOT create the target's ancestor
+    /// directories — if the parent folder doesn't yet exist on disk it fails
+    /// with `stat …: no such file or directory`. We create the parent chain
+    /// first so applying a single file/folder into a not-yet-materialised tree
+    /// works; a folder apply is recursive once its parent exists.
     func apply(target: String) throws {
+        let parent = (target as NSString).deletingLastPathComponent
+        if !parent.isEmpty {
+            try? FileManager.default.createDirectory(
+                atPath: parent,
+                withIntermediateDirectories: true
+            )
+        }
         _ = try run(["apply", "--force", target])
     }
 }
