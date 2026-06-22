@@ -19,6 +19,7 @@
 		BEEF0000000000000000000A /* ChezmoiModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEAD0000000000000000000A /* ChezmoiModels.swift */; };
 		C0DE00000000000000000010 /* web in Resources */ = {isa = PBXBuildFile; fileRef = C0DE0000000000000000000F /* web */; };
 		C0DE00000000000000000011 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000012 /* Localizable.xcstrings */; };
+		C0DE00000000000000000014 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C0DE00000000000000000013 /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		DEAD0000000000000000000A /* ChezmoiModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChezGUI/Chezmoi/ChezmoiModels.swift; sourceTree = "<group>"; };
 		C0DE0000000000000000000F /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ChezGUI/Resources/web; sourceTree = "<group>"; };
 		C0DE00000000000000000012 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = ChezGUI/Localizable.xcstrings; sourceTree = "<group>"; };
+		C0DE00000000000000000013 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = ChezGUI/AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +65,7 @@
 				DEAD0000000000000000000A /* ChezmoiModels.swift */,
 				C0DE0000000000000000000F /* web */,
 				C0DE00000000000000000012 /* Localizable.xcstrings */,
+				C0DE00000000000000000013 /* AppIcon.icon */,
 				C0DE00000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -136,6 +139,7 @@
 			files = (
 				C0DE00000000000000000010 /* web in Resources */,
 				C0DE00000000000000000011 /* Localizable.xcstrings in Resources */,
+				C0DE00000000000000000014 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -201,6 +205,7 @@
 		C0DE0000000000000000000D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_REQUIRED = NO;
@@ -226,6 +231,7 @@
 		C0DE0000000000000000000E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				CODE_SIGNING_REQUIRED = NO;
