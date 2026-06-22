@@ -11,13 +11,19 @@ struct FileNode: Identifiable, Hashable {
     var children: [FileNode]?   // nil for files (no disclosure triangle)
     var status: ChezmoiStatus?  // own apply-effect, if changed
     var hasChangedDescendant: Bool // for the aggregated dot on folders
+    /// True for chezmoi control files (`.chezmoiignore`, `.chezmoi.toml.tmpl`, …)
+    /// shown in the dedicated sidebar section. These have no destination and are
+    /// not part of the apply/status/membership machinery — only editable. For
+    /// these `absolutePath == sourceAbsolute` (the source file is itself).
+    var isControlFile: Bool = false
 
     /// True when the source state is a chezmoi template (`*.tmpl`), so the Edit
     /// tab shows Go-template syntax rather than the final rendered file.
     var isTemplate: Bool { sourceAbsolute.hasSuffix(".tmpl") }
 
     /// Whether this file changes when `chezmoi apply` runs (has a real diff).
-    var hasDiff: Bool { !isDir && status != nil }
+    /// Control files never participate in apply, so always false for them.
+    var hasDiff: Bool { !isDir && !isControlFile && status != nil }
 
     /// Extension of the target file, ignoring a trailing `.tmpl`.
     private var targetExtension: String {
@@ -98,6 +104,30 @@ struct FileNode: Identifiable, Hashable {
         }
 
         return roots.map(convert).sorted(by: order)
+    }
+
+    /// Build the flat control-file nodes (the dedicated "chezmoi" section). These
+    /// don't go through `buildTree` — they're not managed entries — so they carry
+    /// no status and `isControlFile = true`. ids are `control:`-prefixed to stay
+    /// distinct from managed nodes (whose ids are destination relative paths).
+    static func controlNodes(from files: [ChezmoiSpecialFile]) -> [FileNode] {
+        files.map(node(fromSpecial:))
+    }
+
+    private static func node(fromSpecial file: ChezmoiSpecialFile) -> FileNode {
+        let kids = file.children?.map(node(fromSpecial:))
+        return FileNode(
+            id: "control:\(file.path)",
+            name: file.name,
+            relativePath: file.name,
+            absolutePath: file.path,
+            sourceAbsolute: file.path,
+            isDir: file.isDir,
+            children: file.isDir ? (kids ?? []) : nil,
+            status: nil,
+            hasChangedDescendant: false,
+            isControlFile: true
+        )
     }
 
     /// Directories first, then files; alphabetical within each group.

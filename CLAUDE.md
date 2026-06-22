@@ -112,6 +112,20 @@ Data flow: `chezmoi managed --format json --path-style all` (+ `--include=dirs`)
 tree; `chezmoi status -p absolute` → M/A/D/R badges; Diff = file on disk (original) vs
 `chezmoi cat` (modified); Rich = render `chezmoi cat` (markdown) or base64 image data URI.
 
+**chezmoi control-files section** (sidebar "chezmoi" `Section`, below the managed tree):
+the source-dir special files (`.chezmoiignore`, `.chezmoi.toml.tmpl`, contents of
+`.chezmoitemplates/` / `.chezmoiscripts/`, …) are NOT in `chezmoi managed`, so
+`ChezmoiClient.specialFiles()` discovers them by scanning `chezmoi source-path`'s root for
+`.chezmoi*` entries (one level deep into the two container dirs). They become `FileNode`s
+with **`isControlFile = true`** (id prefixed `control:`, `hasDiff` forced false,
+`absolutePath == sourceAbsolute == the file itself`), held in `AppModel.controlNodes`.
+They are **edit-only**: `DetailView.availableModes` returns `[.edit]`, and the sidebar
+context menu is just Open / Reveal — no apply/forget/re-add/Diff (all managed-only). Saving
+reuses the normal Edit-tab flow (writes straight to the source file). The config template
+`.chezmoi.toml.tmpl` highlights via the existing `*.tmpl` path; `.chezmoiignore` falls back
+to plaintext. Out of scope: the external config file (`~/.config/chezmoi/chezmoi.toml`),
+and creating/deleting special files (edit only).
+
 Membership & apply commands (sidebar right-click; `ChezmoiClient` mutating section,
 `AppModel` actions, `FileTreeView` context menu + a `confirmationDialog` per action).
 Menu order is **Apply → Re-add → Forget** (forward, reverse, then destructive-last):

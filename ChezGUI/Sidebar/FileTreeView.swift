@@ -9,6 +9,9 @@ import SwiftUI
 /// ourselves rather than using the auto `List(children:)` API.
 struct FileTreeView: View {
     let nodes: [FileNode]
+    /// chezmoi control files (`.chezmoiignore`, `.chezmoi.toml.tmpl`, …), shown
+    /// in a dedicated section. Editable but not managed: no apply/forget/re-add.
+    let controlNodes: [FileNode]
     @Binding var selection: FileNode?
     /// Invoked to stop managing a file (`chezmoi forget`). The actual file on
     /// disk is left untouched.
@@ -31,6 +34,13 @@ struct FileTreeView: View {
         List(selection: $selection) {
             ForEach(nodes) { node in
                 nodeView(node)
+            }
+            if !controlNodes.isEmpty {
+                Section("chezmoi") {
+                    ForEach(controlNodes) { node in
+                        controlNodeView(node)
+                    }
+                }
             }
         }
         .listStyle(.sidebar)
@@ -138,6 +148,35 @@ struct FileTreeView: View {
                         Button("Stop Managing (Forget)…", role: .destructive) {
                             forgetTarget = node
                         }
+                    }
+            )
+        }
+    }
+
+    // Control files / dirs: editable, but no apply/forget/re-add (not managed).
+    private func controlNodeView(_ node: FileNode) -> AnyView {
+        if node.isDir, let children = node.children {
+            return AnyView(
+                DisclosureGroup(isExpanded: binding(for: node.id)) {
+                    ForEach(children) { child in
+                        controlNodeView(child)
+                    }
+                } label: {
+                    row(node)
+                        .contentShape(Rectangle())
+                        .onTapGesture { toggle(node.id) }
+                        .contextMenu {
+                            Button("Reveal in Finder") { revealInFinder(node) }
+                        }
+                }
+            )
+        } else {
+            return AnyView(
+                row(node)
+                    .tag(node)
+                    .contextMenu {
+                        Button("Open with Default App") { open(node) }
+                        Button("Reveal in Finder") { revealInFinder(node) }
                     }
             )
         }

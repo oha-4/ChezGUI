@@ -161,6 +161,68 @@ actor ChezmoiClient {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Absolute path of the chezmoi source directory root (`chezmoi source-path`
+    /// with no argument).
+    func sourceRoot() throws -> String {
+        try run(["source-path"])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// chezmoi control files that live in the source directory but are NOT
+    /// managed destination entries (they steer chezmoi's behaviour):
+    /// `.chezmoiignore`, `.chezmoiremove`, `.chezmoiroot`, `.chezmoiversion`,
+    /// `.chezmoidata.*`, `.chezmoiexternal.*`, the config template
+    /// (`.chezmoi.<fmt>.tmpl`), and the contents of the `.chezmoitemplates/` and
+    /// `.chezmoiscripts/` directories. These don't appear in `chezmoi managed`,
+    /// so we discover them by scanning the source root directly. Returned sorted
+    /// for a stable sidebar order.
+    func specialFiles() throws -> [ChezmoiSpecialFile] {
+        let root = try sourceRoot()
+        guard !root.isEmpty else { return [] }
+        let fm = FileManager.default
+        let rootURL = URL(fileURLWithPath: root)
+
+        // Directory specials whose contents we surface as children.
+        let containerDirs: Set<String> = [".chezmoitemplates", ".chezmoiscripts"]
+
+        // `options: []` keeps dotfiles (every special file starts with `.`).
+        guard let entries = try? fm.contentsOfDirectory(
+            at: rootURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: []
+        ) else { return [] }
+
+        func isDirectory(_ url: URL) -> Bool {
+            (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+        }
+
+        var result: [ChezmoiSpecialFile] = []
+        for url in entries {
+            let name = url.lastPathComponent
+            guard name.hasPrefix(".chezmoi") else { continue }
+            let dir = isDirectory(url)
+            if dir && containerDirs.contains(name) {
+                // List the directory's contents as children (one level deep).
+                let children = (try? fm.contentsOfDirectory(
+                    at: url,
+                    includingPropertiesForKeys: [.isDirectoryKey],
+                    options: []
+                )) ?? []
+                let kids = children
+                    .filter { !isDirectory($0) }
+                    .map { ChezmoiSpecialFile(path: $0.path, name: $0.lastPathComponent, isDir: false, children: nil) }
+                    .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                result.append(ChezmoiSpecialFile(path: url.path, name: name, isDir: true, children: kids))
+            } else if !dir {
+                result.append(ChezmoiSpecialFile(path: url.path, name: name, isDir: false, children: nil))
+            }
+        }
+        return result.sorted { lhs, rhs in
+            if lhs.isDir != rhs.isDir { return lhs.isDir && !rhs.isDir }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
     // MARK: - Mutating commands
 
     /// Stop managing a target: removes it from the source state but leaves the

@@ -43,6 +43,9 @@ struct DetailView: View {
     /// always returned in `modeOrder`.
     private func availableModes(for node: FileNode?) -> [ViewMode] {
         guard let node, !node.isDir else { return [] }
+        // Control files (.chezmoiignore, .chezmoi.toml.tmpl, …) have no
+        // destination, so no Diff/Current/Rich — only the editable source.
+        if node.isControlFile { return [.edit] }
         if node.isImage { return [.rich] } // raw bytes aren't useful in Diff/Edit
         var modes: Set<ViewMode> = [.edit]
         if node.hasDiff { modes.insert(.diff) }

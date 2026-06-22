@@ -5,6 +5,9 @@ final class AppModel: ObservableObject {
     let client = ChezmoiClient()
 
     @Published var nodes: [FileNode] = []
+    /// chezmoi control files (`.chezmoiignore`, `.chezmoi.toml.tmpl`, …) shown in
+    /// the dedicated sidebar section. Editable but not managed (no apply/status).
+    @Published var controlNodes: [FileNode] = []
     @Published var selection: FileNode?
     @Published var errorMessage: String?
     @Published var isLoading = false
@@ -15,13 +18,15 @@ final class AppModel: ObservableObject {
         do {
             async let entries = client.managed()
             async let status = client.status()
+            async let special = client.specialFiles()
             let tree = FileNode.buildTree(entries: try await entries, status: try await status)
             self.nodes = tree
+            self.controlNodes = FileNode.controlNodes(from: try await special)
             // Re-resolve the selection to the rebuilt node (its status may have
             // changed) so the sidebar highlight survives and the detail view
             // keeps the same file without reloading the editor.
             if let id = selection?.id {
-                selection = Self.node(withId: id, in: tree)
+                selection = Self.node(withId: id, in: tree) ?? Self.node(withId: id, in: controlNodes)
             }
         } catch {
             self.errorMessage = error.localizedDescription
@@ -94,6 +99,7 @@ struct ContentView: View {
         NavigationSplitView {
             FileTreeView(
                 nodes: model.nodes,
+                controlNodes: model.controlNodes,
                 selection: Binding(
                     get: { model.selection },
                     set: { newValue in guardedNavigate { model.selection = newValue } }

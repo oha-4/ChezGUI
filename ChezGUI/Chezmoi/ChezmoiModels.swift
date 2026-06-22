@@ -8,6 +8,17 @@ struct ManagedEntry: Hashable {
     let isDir: Bool
 }
 
+/// A chezmoi control file in the source directory (`.chezmoiignore`,
+/// `.chezmoi.toml.tmpl`, contents of `.chezmoitemplates/`, …). Unlike
+/// `ManagedEntry` these have no destination and are not part of the apply/
+/// status machinery — they are simply editable source files.
+struct ChezmoiSpecialFile: Hashable {
+    let path: String            // absolute path in the source dir
+    let name: String            // last path component
+    let isDir: Bool             // true for container dirs (.chezmoitemplates/…)
+    let children: [ChezmoiSpecialFile]?
+}
+
 /// The effect that `chezmoi apply` would have on a target, derived from the
 /// second column of `chezmoi status` (git-status style).
 enum ChezmoiStatus: String {
