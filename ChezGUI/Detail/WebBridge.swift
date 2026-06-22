@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import WebKit
 
@@ -66,7 +67,7 @@ final class AppSchemeHandler: NSObject, WKURLSchemeHandler {
 /// Owns the WKWebView and drives Monaco. Buffers commands until the page
 /// reports `ready`, then flushes the latest one.
 @MainActor
-final class MonacoBridge: NSObject, ObservableObject, WKScriptMessageHandler {
+final class MonacoBridge: NSObject, ObservableObject, WKScriptMessageHandler, WKNavigationDelegate {
     let webView: WKWebView
     private var isReady = false
     /// Commands issued before the page reports `ready`, flushed in order once it
@@ -98,6 +99,7 @@ final class MonacoBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         webView = WKWebView(frame: .zero, configuration: config)
         super.init()
 
+        webView.navigationDelegate = self
         config.userContentController.add(self, name: "bridge")
         if let start = URL(string: "\(AppSchemeHandler.scheme)://app/index.html") {
             webView.load(URLRequest(url: start))
@@ -130,6 +132,32 @@ final class MonacoBridge: NSObject, ObservableObject, WKScriptMessageHandler {
             }
         default:
             break
+        }
+    }
+
+    // MARK: - Navigation
+
+    /// Keep the WebView pinned to our bundled `app://` shell. Any other navigation
+    /// — a link clicked in the Rich (markdown) view, which `markdown-it`'s
+    /// `linkify` turns into an `<a href>` — would otherwise replace the whole
+    /// Monaco app with arbitrary remote content (running in our message-handler
+    /// context). Cancel those and hand the URL to the user's default browser.
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+        if url.scheme == AppSchemeHandler.scheme || url.scheme == "about" {
+            decisionHandler(.allow)
+            return
+        }
+        decisionHandler(.cancel)
+        if url.scheme == "http" || url.scheme == "https" || url.scheme == "mailto" {
+            NSWorkspace.shared.open(url)
         }
     }
 
