@@ -63,6 +63,8 @@ import injectionGrammarUrl from "./grammars/injection.go-template.tmLanguage.jso
 import goTemplateGrammarUrl from "./grammars/go-template.tmLanguage.json?url";
 // Vimscript isn't a VS Code builtin; vendored grammar (MIT, XadillaX/vscode-language-viml).
 import vimlGrammarUrl from "./grammars/viml.tmLanguage.json?url";
+// gitignore-style patterns, for chezmoi's `.chezmoiignore` / `.chezmoiremove`.
+import ignoreGrammarUrl from "./grammars/ignore.tmLanguage.json?url";
 
 // Vendored VS Code colour themes, registered via our own extension + `?url`
 // (the path that loads reliably over app:// in WKWebView). Default = the classic
@@ -284,6 +286,10 @@ const FILENAME_LANG: Record<string, string> = {
   inputrc: "ini",
   curlrc: "ini",
   wgetrc: "ini",
+  // chezmoi control files (leading dot stripped by the normaliser below).
+  chezmoiignore: "ignore",
+  chezmoiremove: "ignore",
+  gitignore: "ignore",
 };
 // Interpreter (from a `#!` shebang) → VS Code language id. Used only as a
 // fallback for files whose name/extension says nothing (common for executable
@@ -755,11 +761,13 @@ async function bootstrap() {
           { id: "toml", extensions: [".toml"] },
           { id: "go-template", extensions: [".gotmpl"] },
           { id: "viml", extensions: [".vim", ".vimrc"], filenames: [".vimrc", ".gvimrc", "vimrc", "gvimrc"] },
+          { id: "ignore", filenames: [".chezmoiignore", ".chezmoiremove", ".gitignore"] },
         ],
         grammars: [
           { language: "toml", scopeName: "source.toml", path: "./toml.tmLanguage.json" },
           { language: "go-template", scopeName: "source.go-template", path: "./go-template.tmLanguage.json" },
           { language: "viml", scopeName: "source.viml", path: "./viml.tmLanguage.json" },
+          { language: "ignore", scopeName: "source.ignore", path: "./ignore.tmLanguage.json" },
           {
             // Overlay Go-template `{{ … }}` onto these base scopes, INCLUDING
             // inside their string tokens (the chezmoi *.tmpl requirement).
@@ -769,7 +777,7 @@ async function bootstrap() {
               "source.json", "source.yaml", "source.toml", "source.ini", "source.shell",
               "source.python", "source.ruby", "source.lua", "source.rust", "source.go",
               "source.js", "source.ts", "source.perl", "text.xml", "text.html.basic", "source.css",
-              "source.viml",
+              "source.viml", "source.ignore",
             ],
             embeddedLanguages: { "meta.embedded.go-template": "go-template" },
           },
@@ -789,6 +797,7 @@ async function bootstrap() {
   ext.registerFileUrl("./injection.go-template.tmLanguage.json", new URL(injectionGrammarUrl, import.meta.url).toString());
   ext.registerFileUrl("./go-template.tmLanguage.json", new URL(goTemplateGrammarUrl, import.meta.url).toString());
   ext.registerFileUrl("./viml.tmLanguage.json", new URL(vimlGrammarUrl, import.meta.url).toString());
+  ext.registerFileUrl("./ignore.tmLanguage.json", new URL(ignoreGrammarUrl, import.meta.url).toString());
   ext.registerFileUrl("./light_vs.json", new URL(defaultLightThemeUrl, import.meta.url).toString());
   ext.registerFileUrl("./dark_vs.json", new URL(defaultDarkThemeUrl, import.meta.url).toString());
   ext.registerFileUrl("./solarized-light.json", new URL(solarizedLightThemeUrl, import.meta.url).toString());

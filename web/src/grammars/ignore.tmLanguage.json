@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Ignore",
+  "scopeName": "source.ignore",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#negation" },
+    { "include": "#pattern" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "^\\s*#.*$",
+      "name": "comment.line.number-sign.ignore"
+    },
+    "negation": {
+      "match": "^\\s*!",
+      "name": "keyword.control.negation.ignore"
+    },
+    "pattern": {
+      "patterns": [
+        {
+          "match": "\\*\\*|\\*|\\?",
+          "name": "constant.character.wildcard.ignore"
+        },
+        {
+          "match": "\\[[^\\]]*\\]",
+          "name": "constant.other.character-class.ignore"
+        },
+        {
+          "match": "/",
+          "name": "punctuation.separator.path.ignore"
+        }
+      ]
+    }
+  }
+}

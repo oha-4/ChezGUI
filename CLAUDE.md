@@ -53,10 +53,11 @@ string values (e.g. `"email": "{{ .email }}"`) via a TextMate **injection** gram
 (`injectTo`) — Shiki cannot do in-string injection; that's why it was rejected.
 
 `web/src/main.ts` registers ONE local extension (`chezgui-grammars`) contributing:
-the vendored `toml` + `go-template` + `viml` grammars (the latter two are not VS
-Code builtins; `viml` is MIT, from XadillaX/vscode-language-viml), the `injectTo`
-injection grammar (`web/src/grammars/`), and the VS Code colour themes
-(`web/src/themes-vscode/`).
+the vendored `toml` + `go-template` + `viml` + `ignore` grammars (none but `toml`
+are VS Code builtins; `viml` is MIT, from XadillaX/vscode-language-viml; `ignore`
+is a small gitignore-style grammar for `.chezmoiignore`/`.chezmoiremove`/`.gitignore`,
+mapped by filename in `FILENAME_LANG`), the `injectTo` injection grammar
+(`web/src/grammars/`), and the VS Code colour themes (`web/src/themes-vscode/`).
 Base languages (json/yaml/ini/shellscript/markdown/python/ruby/lua/rust/go/
 javascript/typescript/perl/xml/html/css) come from
 `@codingame/monaco-vscode-*-default-extension` packages — to add another, install
@@ -122,8 +123,10 @@ with **`isControlFile = true`** (id prefixed `control:`, `hasDiff` forced false,
 They are **edit-only**: `DetailView.availableModes` returns `[.edit]`, and the sidebar
 context menu is just Open / Reveal — no apply/forget/re-add/Diff (all managed-only). Saving
 reuses the normal Edit-tab flow (writes straight to the source file). The config template
-`.chezmoi.toml.tmpl` highlights via the existing `*.tmpl` path; `.chezmoiignore` falls back
-to plaintext. Out of scope: the external config file (`~/.config/chezmoi/chezmoi.toml`),
+`.chezmoi.toml.tmpl` highlights via the existing `*.tmpl` path; `.chezmoiignore` /
+`.chezmoiremove` highlight via a vendored `ignore` grammar (gitignore-style) with the
+Go-template injection overlaid (they're always templates in chezmoi). Out of scope: the
+external config file (`~/.config/chezmoi/chezmoi.toml`),
 and creating/deleting special files (edit only).
 
 Membership & apply commands (sidebar right-click; `ChezmoiClient` mutating section,
