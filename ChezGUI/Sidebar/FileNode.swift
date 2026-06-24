@@ -85,11 +85,16 @@ struct FileNode: Identifiable, Hashable {
 
         func convert(_ builder: Builder) -> FileNode {
             let entry = builder.entry
-            let kids = builder.children
+            // Drop empty-noise folders bottom-up: a directory with no file
+            // descendants and no status anywhere in its subtree carries nothing
+            // to show or act on. Recursion prunes leaves first, so a folder left
+            // with no surviving children was wholly noise.
+            let keptKids = builder.children
                 .map(convert)
+                .filter { !Self.isEmptyNoise($0) }
                 .sorted(by: Self.order)
             let ownStatus = status[entry.absolutePath]
-            let changedDescendant = kids.contains { $0.status != nil || $0.hasChangedDescendant }
+            let changedDescendant = keptKids.contains { $0.status != nil || $0.hasChangedDescendant }
             return FileNode(
                 id: entry.relativePath,
                 name: (entry.relativePath as NSString).lastPathComponent,
@@ -97,13 +102,22 @@ struct FileNode: Identifiable, Hashable {
                 absolutePath: entry.absolutePath,
                 sourceAbsolute: entry.sourceAbsolute,
                 isDir: entry.isDir,
-                children: entry.isDir ? kids : nil,
+                children: entry.isDir ? keptKids : nil,
                 status: ownStatus,
                 hasChangedDescendant: changedDescendant
             )
         }
 
-        return roots.map(convert).sorted(by: order)
+        return roots.map(convert).filter { !isEmptyNoise($0) }.sorted(by: order)
+    }
+
+    /// A directory with no file descendants and no status anywhere in its
+    /// subtree (own status nil and, by bottom-up pruning, no surviving
+    /// children). Such folders are hidden from the sidebar — they have nothing
+    /// to show or apply. A status-carrying empty dir (e.g. a `chezmoi apply`
+    /// will-create `A`) is kept so its badge stays visible.
+    private static func isEmptyNoise(_ node: FileNode) -> Bool {
+        node.isDir && (node.children?.isEmpty ?? true) && node.status == nil
     }
 
     /// Build the flat control-file nodes (the dedicated "chezmoi" section). These
