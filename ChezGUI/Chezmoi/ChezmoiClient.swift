@@ -6,22 +6,20 @@ actor ChezmoiClient {
     /// Resolved path to the chezmoi binary, discovered lazily.
     private var binaryPath: String?
 
+    /// PATH from a login shell, used to run chezmoi so its own child
+    /// processes (`output` template funcs, `run_` scripts) can find user
+    /// binaries even when the app is launched from Finder/Dock with a
+    /// minimal inherited PATH. Resolved lazily, cached.
+    private var loginPathValue: String??
+
     // MARK: - Binary discovery
 
     private func resolveBinary() throws -> String {
         if let binaryPath { return binaryPath }
 
-        let candidates = [
-            "/opt/homebrew/bin/chezmoi",
-            "/usr/local/bin/chezmoi",
-            (NSHomeDirectory() as NSString).appendingPathComponent(".local/bin/chezmoi"),
-        ]
-        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
-            binaryPath = path
-            return path
-        }
-
-        // Fall back to a login shell so we pick up a user-customised PATH.
+        // Resolve via a login shell, the same PATH chezmoi's own child
+        // processes get (see `chezmoiEnvironment`) — one source of truth, so
+        // if we can run chezmoi its `output`/`run_` helpers resolve too.
         if let resolved = try? runRaw(
             executable: "/bin/zsh",
             args: ["-lc", "command -v chezmoi"]
@@ -36,6 +34,30 @@ actor ChezmoiClient {
         throw ChezmoiError(message: String(localized: "chezmoi executable not found. Install it (e.g. `brew install chezmoi`) and try again."))
     }
 
+    /// PATH as seen by a login shell (`.zshenv`/`.zprofile`/`.zlogin`), so
+    /// chezmoi's child processes resolve user binaries when the app is
+    /// launched from Finder/Dock. NOT interactive (no `.zshrc`) — env vars
+    /// belong in the login files by zsh convention.
+    private func loginPath() -> String? {
+        if let cached = loginPathValue { return cached }
+        let resolved = try? runRaw(
+            executable: "/bin/zsh",
+            args: ["-lc", "printf %s \"$PATH\""]
+        ).stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = (resolved?.isEmpty == false) ? resolved : nil
+        loginPathValue = value
+        return value
+    }
+
+    /// Base environment for chezmoi invocations: the inherited environment
+    /// with PATH overridden by the login-shell PATH when available.
+    private func chezmoiEnvironment() -> [String: String]? {
+        guard let path = loginPath() else { return nil }
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = path
+        return env
+    }
+
     // MARK: - Process execution
 
     private struct ProcessResult {
@@ -44,10 +66,11 @@ actor ChezmoiClient {
         let exitCode: Int32
     }
 
-    private func runRawData(executable: String, args: [String]) throws -> (stdout: Data, stderr: String, exitCode: Int32) {
+    private func runRawData(executable: String, args: [String], environment: [String: String]? = nil) throws -> (stdout: Data, stderr: String, exitCode: Int32) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = args
+        if let environment { process.environment = environment }
 
         let outPipe = Pipe()
         let errPipe = Pipe()
@@ -67,8 +90,8 @@ actor ChezmoiClient {
         )
     }
 
-    private func runRaw(executable: String, args: [String]) throws -> ProcessResult {
-        let raw = try runRawData(executable: executable, args: args)
+    private func runRaw(executable: String, args: [String], environment: [String: String]? = nil) throws -> ProcessResult {
+        let raw = try runRawData(executable: executable, args: args, environment: environment)
         return ProcessResult(
             stdout: String(decoding: raw.stdout, as: UTF8.self),
             stderr: raw.stderr,
@@ -79,7 +102,7 @@ actor ChezmoiClient {
     /// Run a chezmoi subcommand and return stdout, throwing on non-zero exit.
     private func run(_ args: [String]) throws -> String {
         let binary = try resolveBinary()
-        let result = try runRaw(executable: binary, args: args)
+        let result = try runRaw(executable: binary, args: args, environment: chezmoiEnvironment())
         guard result.exitCode == 0 else {
             let detail = result.stderr.isEmpty ? result.stdout : result.stderr
             let command = args.joined(separator: " ")
@@ -147,7 +170,7 @@ actor ChezmoiClient {
     /// Rendered target contents as raw bytes (for binary targets like images).
     func catData(target: String) throws -> Data {
         let binary = try resolveBinary()
-        let raw = try runRawData(executable: binary, args: ["cat", target])
+        let raw = try runRawData(executable: binary, args: ["cat", target], environment: chezmoiEnvironment())
         guard raw.exitCode == 0 else {
             let detail = raw.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             throw ChezmoiError(message: String(localized: "chezmoi cat \(target) failed: \(detail)"))
