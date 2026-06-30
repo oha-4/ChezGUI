@@ -169,6 +169,7 @@ struct ContentView: View {
                     panel.canChooseFiles = true
                     panel.canChooseDirectories = true   // chezmoi add recurses into dirs
                     panel.allowsMultipleSelection = true
+                    panel.showsHiddenFiles = true       // dotfiles are what chezmoi manages
                     panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
                     panel.prompt = "Add"
                     panel.message = "Choose files in your home directory to add to chezmoi"
