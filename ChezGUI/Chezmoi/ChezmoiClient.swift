@@ -282,4 +282,13 @@ actor ChezmoiClient {
         }
         _ = try run(["apply", "--force", target])
     }
+
+    /// Add an on-disk file (or directory, recursively) in the destination dir to
+    /// chezmoi's source state. The target must already exist on disk and live
+    /// under chezmoi's destination dir (~), else chezmoi errors (surfaced to the
+    /// user). No parent-dir pre-creation needed (unlike `apply`): the target
+    /// already exists.
+    func add(target: String) throws {
+        _ = try run(["add", target])
+    }
 }

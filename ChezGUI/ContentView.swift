@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @MainActor
@@ -70,11 +71,44 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Add one or more unmanaged on-disk files to chezmoi (`chezmoi add`). After
+    /// reloading, select the last added file so the user sees it land in the
+    /// tree. Unlike forget/re-add/apply, the targets come from a file picker or a
+    /// drop (no sidebar node exists for an unmanaged file).
+    func add(paths: [String]) async {
+        guard !paths.isEmpty else { return }
+        do {
+            for path in paths {
+                try await client.add(target: path)
+            }
+            await refresh()
+            if let last = paths.last,
+               let node = Self.node(withAbsolutePath: last, in: nodes) {
+                selection = node
+            }
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
     /// Depth-first lookup of a node by its stable id (relative path).
     private static func node(withId id: FileNode.ID, in nodes: [FileNode]) -> FileNode? {
         for node in nodes {
             if node.id == id { return node }
             if let children = node.children, let found = Self.node(withId: id, in: children) {
+                return found
+            }
+        }
+        return nil
+    }
+
+    /// Depth-first lookup of a node by its destination absolute path — used after
+    /// `add`, where the new node's relative-path id isn't known from the dest path.
+    private static func node(withAbsolutePath path: String, in nodes: [FileNode]) -> FileNode? {
+        for node in nodes {
+            if node.absolutePath == path { return node }
+            if let children = node.children,
+               let found = Self.node(withAbsolutePath: path, in: children) {
                 return found
             }
         }
@@ -106,7 +140,8 @@ struct ContentView: View {
                 ),
                 onForget: { node in Task { await model.forget(node) } },
                 onReAdd: { node in Task { await model.reAdd(node) } },
-                onApply: { node in Task { await model.apply(node) } }
+                onApply: { node in Task { await model.apply(node) } },
+                onAdd: { paths in Task { await model.add(paths: paths) } }
             )
             .navigationSplitViewColumnWidth(min: 220, ideal: 280)
         } detail: {
@@ -126,6 +161,25 @@ struct ContentView: View {
                     Image(systemName: "arrow.clockwise")
                 }
                 .help("Reload managed files and status")
+                .disabled(model.isLoading)
+            }
+            ToolbarItem(placement: .navigation) {
+                Button {
+                    let panel = NSOpenPanel()
+                    panel.canChooseFiles = true
+                    panel.canChooseDirectories = true   // chezmoi add recurses into dirs
+                    panel.allowsMultipleSelection = true
+                    panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
+                    panel.prompt = "Add"
+                    panel.message = "Choose files in your home directory to add to chezmoi"
+                    if panel.runModal() == .OK {
+                        let paths = panel.urls.map(\.path)
+                        Task { await model.add(paths: paths) }
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .help("Add a file to chezmoi (chezmoi add)")
                 .disabled(model.isLoading)
             }
         }

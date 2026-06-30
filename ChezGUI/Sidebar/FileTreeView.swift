@@ -22,6 +22,9 @@ struct FileTreeView: View {
     /// Invoked to apply a file (`chezmoi apply`): overwrite the on-disk file
     /// with the rendered source state. Offered only when the target differs.
     let onApply: (FileNode) -> Void
+    /// Invoked to add unmanaged on-disk files (`chezmoi add`) — dropped onto the
+    /// sidebar from Finder. Each is an absolute destination path.
+    let onAdd: ([String]) -> Void
     @State private var expanded: Set<String> = []
     /// The file pending a forget confirmation, or nil when no dialog is shown.
     @State private var forgetTarget: FileNode?
@@ -29,6 +32,8 @@ struct FileTreeView: View {
     @State private var reAddTarget: FileNode?
     /// The file pending an apply confirmation, or nil when no dialog is shown.
     @State private var applyTarget: FileNode?
+    /// Files dropped from Finder pending an add confirmation, or nil when none.
+    @State private var dropTargets: [String]?
 
     var body: some View {
         List(selection: $selection) {
@@ -44,6 +49,12 @@ struct FileTreeView: View {
             }
         }
         .listStyle(.sidebar)
+        .dropDestination(for: URL.self) { urls, _ in
+            let paths = urls.filter(\.isFileURL).map(\.path)
+            guard !paths.isEmpty else { return false }
+            dropTargets = paths   // route through a confirmation
+            return true
+        }
         .confirmationDialog(
             forgetTarget?.isDir == true ? "Stop managing this folder?" : "Stop managing this file?",
             isPresented: Binding(
@@ -96,6 +107,24 @@ struct FileTreeView: View {
                 Text("The on-disk files for every changed managed file inside “\(node.name)” will be overwritten with chezmoi’s rendered source state, making the source the source of truth.")
             } else {
                 Text("The on-disk file “\(node.name)” will be overwritten with chezmoi’s rendered source state, making the source the source of truth.")
+            }
+        }
+        .confirmationDialog(
+            "Add to chezmoi?",
+            isPresented: Binding(
+                get: { dropTargets != nil },
+                set: { if !$0 { dropTargets = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: dropTargets
+        ) { paths in
+            Button("Add") { onAdd(paths) }
+            Button("Cancel", role: .cancel) {}
+        } message: { paths in
+            if paths.count == 1 {
+                Text("“\((paths[0] as NSString).lastPathComponent)” will be added to chezmoi’s source state.")
+            } else {
+                Text("\(paths.count) files will be added to chezmoi’s source state.")
             }
         }
     }
