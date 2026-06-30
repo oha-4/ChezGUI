@@ -288,7 +288,14 @@ actor ChezmoiClient {
     /// under chezmoi's destination dir (~), else chezmoi errors (surfaced to the
     /// user). No parent-dir pre-creation needed (unlike `apply`): the target
     /// already exists.
-    func add(target: String) throws {
-        _ = try run(["add", target])
+    ///
+    /// `encrypt` adds `--encrypt`, storing the source state encrypted. This
+    /// requires encryption to be configured in chezmoi (age/gpg); if it isn't,
+    /// chezmoi errors and the message is surfaced to the user.
+    func add(target: String, encrypt: Bool = false) throws {
+        var args = ["add"]
+        if encrypt { args.append("--encrypt") }
+        args.append(target)
+        _ = try run(args)
     }
 }

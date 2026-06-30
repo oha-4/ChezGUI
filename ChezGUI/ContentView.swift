@@ -75,11 +75,11 @@ final class AppModel: ObservableObject {
     /// reloading, select the last added file so the user sees it land in the
     /// tree. Unlike forget/re-add/apply, the targets come from a file picker or a
     /// drop (no sidebar node exists for an unmanaged file).
-    func add(paths: [String]) async {
+    func add(paths: [String], encrypt: Bool = false) async {
         guard !paths.isEmpty else { return }
         do {
             for path in paths {
-                try await client.add(target: path)
+                try await client.add(target: path, encrypt: encrypt)
             }
             await refresh()
             if let last = paths.last,
@@ -172,9 +172,23 @@ struct ContentView: View {
                     panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
                     panel.prompt = "Add"
                     panel.message = "Choose files in your home directory to add to chezmoi"
+                    // An accessory checkbox lets the user encrypt the added source
+                    // state (chezmoi add --encrypt) without a second dialog.
+                    let encryptCheck = NSButton(
+                        checkboxWithTitle: "Encrypt (--encrypt)",
+                        target: nil,
+                        action: nil
+                    )
+                    let accessory = NSStackView(views: [encryptCheck])
+                    accessory.orientation = .vertical
+                    accessory.alignment = .leading
+                    accessory.edgeInsets = NSEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
+                    panel.accessoryView = accessory
+                    panel.isAccessoryViewDisclosed = true
                     if panel.runModal() == .OK {
                         let paths = panel.urls.map(\.path)
-                        Task { await model.add(paths: paths) }
+                        let encrypt = encryptCheck.state == .on
+                        Task { await model.add(paths: paths, encrypt: encrypt) }
                     }
                 } label: {
                     Image(systemName: "plus")
