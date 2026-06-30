@@ -25,6 +25,12 @@ struct FileTreeView: View {
     /// Invoked to add unmanaged on-disk files (`chezmoi add`) — dropped onto the
     /// sidebar from Finder. Each is an absolute destination path.
     let onAdd: ([String]) -> Void
+    /// Invoked to convert a managed file into a template (`chezmoi chattr
+    /// template`). Offered for non-template files.
+    let onMakeTemplate: (FileNode) -> Void
+    /// Invoked to revert a template back to a regular file (`chezmoi chattr
+    /// notemplate`). Offered only when the source has no `{{ … }}` syntax.
+    let onUnmakeTemplate: (FileNode) -> Void
     @State private var expanded: Set<String> = []
     /// The file pending a forget confirmation, or nil when no dialog is shown.
     @State private var forgetTarget: FileNode?
@@ -174,6 +180,23 @@ struct FileTreeView: View {
                         if node.hasDiff && !node.isTemplate {
                             Button("Re-add from Disk…") { reAddTarget = node }
                         }
+                        Divider()
+                        // Toggle the chezmoi template attribute (`chattr`). Run
+                        // immediately — it only renames the source, no diff. A
+                        // template that still uses `{{ … }}` can't be reverted
+                        // (the delimiters would be written out literally), so
+                        // that item is disabled with the reason shown.
+                        if node.isTemplate {
+                            if node.usesTemplateSyntax {
+                                Button("Revert to Regular File (uses {{ … }} syntax)") {}
+                                    .disabled(true)
+                            } else {
+                                Button("Revert to Regular File") { onUnmakeTemplate(node) }
+                            }
+                        } else {
+                            Button("Convert to Template") { onMakeTemplate(node) }
+                        }
+                        Divider()
                         Button("Stop Managing (Forget)…", role: .destructive) {
                             forgetTarget = node
                         }

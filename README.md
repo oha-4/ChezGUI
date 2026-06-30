@@ -5,10 +5,10 @@ dotfiles as a tree and inspect them with colourised diffs, syntax-highlighted
 source, and rich previews.
 
 > **Early days.** ChezGUI can browse **and edit** your managed dotfiles (saving
-> straight back to the source state), manage what chezmoi tracks via
-> **forget** / **re-add**, and **apply** changes per file or folder back to disk.
-> `add` / `merge` and other write commands are the next phase (see
-> [Roadmap](#roadmap)).
+> straight back to the source state), **add** new files, manage what chezmoi
+> tracks via **forget** / **re-add**, toggle files **to/from templates**, and
+> **apply** changes per file or folder back to disk. `merge` and a batch
+> apply-all are the next phase (see [Roadmap](#roadmap)).
 
 ![Platform](https://img.shields.io/badge/platform-macOS-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -38,6 +38,15 @@ source, and rich previews.
     Offered only for changed, non-template files.
   - **Stop Managing (Forget)** — run `chezmoi forget` to stop tracking a file;
     the actual file on disk is left untouched.
+  - **Convert to / Revert from Template** — run `chezmoi chattr template` /
+    `notemplate` to toggle a file's template attribute (the source gains/loses
+    its `.tmpl` suffix). Runs immediately (no confirmation). Reverting is offered
+    only when the template has no `{{ … }}` syntax left — otherwise the menu item
+    is disabled, since dropping the attribute would write the delimiters out
+    literally.
+- **Add files** to chezmoi (`chezmoi add`) via the toolbar **+** button (a file
+  picker, with an optional **Encrypt** checkbox) or by dragging files from Finder
+  onto the sidebar.
 
 Tabs are shown per file based on what makes sense: Diff only when there's a
 diff, Rich only for Markdown/images.
@@ -83,6 +92,10 @@ Membership & apply (sidebar right-click, each behind a confirmation dialog):
   on-disk file (offered for changed files/folders; templates included)
 - `chezmoi re-add <target>` — overwrite the source state from the on-disk file
 - `chezmoi forget --force <target>` — stop managing a file (the on-disk file stays)
+- `chezmoi chattr template|notemplate <target>` — toggle a file's template
+  attribute (runs immediately, no confirmation)
+- `chezmoi add [--encrypt] <path>` — start managing an unmanaged file (toolbar +
+  button / Finder drag-and-drop)
 
 Saving from the Edit tab writes the buffer **directly to the chezmoi source file**
 (it does not shell out to `chezmoi`), so the change is staged in your source state;
@@ -123,7 +136,7 @@ rebuilding the app.
 
 ## Roadmap
 
-- `chezmoi add` / `merge`
+- `chezmoi merge`
 - Apply-all / batch apply across the whole tree (per-file/folder apply is done)
 - Side-by-side rendered "rich diff" (old vs new Markdown)
 

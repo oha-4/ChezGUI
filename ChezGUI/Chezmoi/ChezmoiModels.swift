@@ -6,6 +6,9 @@ struct ManagedEntry: Hashable {
     let absolutePath: String   // destination path in $HOME
     let sourceAbsolute: String // path in the chezmoi source dir
     let isDir: Bool
+    /// True for `*.tmpl` sources whose content contains `{{ … }}` actions, so
+    /// the template can't be reverted to a regular file without losing them.
+    let usesTemplateSyntax: Bool
 }
 
 /// A chezmoi control file in the source directory (`.chezmoiignore`,

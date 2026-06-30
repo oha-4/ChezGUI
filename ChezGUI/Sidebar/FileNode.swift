@@ -16,6 +16,10 @@ struct FileNode: Identifiable, Hashable {
     /// not part of the apply/status/membership machinery — only editable. For
     /// these `absolutePath == sourceAbsolute` (the source file is itself).
     var isControlFile: Bool = false
+    /// True for `*.tmpl` sources containing `{{ … }}` actions. Such a template
+    /// can't be reverted to a regular file (the delimiters would be written out
+    /// literally), so the sidebar disables "Revert to Regular File" for it.
+    var usesTemplateSyntax: Bool = false
 
     /// True when the source state is a chezmoi template (`*.tmpl`), so the Edit
     /// tab shows Go-template syntax rather than the final rendered file.
@@ -104,7 +108,8 @@ struct FileNode: Identifiable, Hashable {
                 isDir: entry.isDir,
                 children: entry.isDir ? keptKids : nil,
                 status: ownStatus,
-                hasChangedDescendant: changedDescendant
+                hasChangedDescendant: changedDescendant,
+                usesTemplateSyntax: entry.usesTemplateSyntax
             )
         }
 

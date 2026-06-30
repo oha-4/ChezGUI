@@ -145,6 +145,20 @@ Menu order is **Apply → Re-add → Forget** (forward, reverse, then destructiv
   `--force` is required (no TTY for the prompt). Offered for every file.
 All run `await model.<action>` → `refresh()`.
 
+**Template toggle** (`chezmoi chattr`, files only, no folders/control files; its own
+Divider above Forget in the file context menu). Unlike the above, it runs **immediately —
+no `confirmationDialog`** (renaming the source is reversible, touches no destination):
+- `chezmoi chattr template <target>` (`AppModel.makeTemplate`) — add the template
+  attribute; the source file gains a `.tmpl` suffix. Offered for any non-template file
+  (`!node.isTemplate`). `chattr` only renames and never prompts, so **no `--force`**.
+- `chezmoi chattr notemplate <target>` (`AppModel.unmakeTemplate`) — drop the `.tmpl`
+  suffix. Offered **only when `node.isTemplate && !node.usesTemplateSyntax`** — reverting a
+  source that still contains `{{ … }}` would write the delimiters out literally. When the
+  template *does* use `{{ … }}`, the menu item is shown **disabled** with the reason inline.
+  `usesTemplateSyntax` is computed in `ChezmoiClient.managed()` by reading each `*.tmpl`
+  source and checking for `{{` (carried on `ManagedEntry` → `FileNode`). The destination id
+  is unchanged by the source rename, so `refresh()`'s id re-resolution keeps the selection.
+
 Save flow (Edit tab): web posts `{type:"save", payload:{content}}` → `MonacoBridge`
 writes it **directly to `editableSourcePath`** (the `*.tmpl`/source file,
 `Data.write(atomically:)` — no `chezmoi` shell-out) → `markSaved()` back to JS +
@@ -190,8 +204,7 @@ diff, Rich only for markdown/images. `defaultMode` picks the best tab on selecti
 
 ## Remaining / next phase (not started)
 
-- `chezmoi add` / `merge`; a batch/apply-all across the whole tree (per-file/folder
-  apply is done).
+- `chezmoi merge`; a batch/apply-all across the whole tree (per-file/folder apply is done).
 - ③ side-by-side rendered "rich diff" (old vs new markdown) — deprioritised after the diff
   simplification; only do it if the user asks.
 
@@ -200,3 +213,6 @@ Done (so not "remaining"):
   model-reference gotcha above).
 - `apply` / `forget` / `re-add` per file/folder from the sidebar right-click menu
   (see the membership & apply commands under Data flow).
+- `chezmoi add` (toolbar picker + drag-and-drop, with an Encrypt option).
+- Template toggle (`chezmoi chattr template` / `notemplate`) from the file context menu
+  (see the template-toggle bullets under the membership & apply commands).

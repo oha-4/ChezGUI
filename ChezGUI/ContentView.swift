@@ -91,6 +91,32 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Convert a managed file into a chezmoi template (`chezmoi chattr
+    /// template`): the source file gains a `.tmpl` suffix and `{{ … }}` becomes
+    /// live template syntax. Reversible via `unmakeTemplate`. The destination id
+    /// is unchanged by the source rename, so `refresh()` keeps the selection.
+    func makeTemplate(_ node: FileNode) async {
+        do {
+            try await client.setTemplate(target: node.absolutePath, enabled: true)
+            await refresh()
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Revert a template back to a regular file (`chezmoi chattr notemplate`):
+    /// the `.tmpl` suffix is dropped. Only offered when the source has no
+    /// `{{ … }}` actions (`!node.usesTemplateSyntax`), else the delimiters would
+    /// be written out literally.
+    func unmakeTemplate(_ node: FileNode) async {
+        do {
+            try await client.setTemplate(target: node.absolutePath, enabled: false)
+            await refresh()
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
     /// Depth-first lookup of a node by its stable id (relative path).
     private static func node(withId id: FileNode.ID, in nodes: [FileNode]) -> FileNode? {
         for node in nodes {
@@ -141,7 +167,9 @@ struct ContentView: View {
                 onForget: { node in Task { await model.forget(node) } },
                 onReAdd: { node in Task { await model.reAdd(node) } },
                 onApply: { node in Task { await model.apply(node) } },
-                onAdd: { paths in Task { await model.add(paths: paths) } }
+                onAdd: { paths in Task { await model.add(paths: paths) } },
+                onMakeTemplate: { node in Task { await model.makeTemplate(node) } },
+                onUnmakeTemplate: { node in Task { await model.unmakeTemplate(node) } }
             )
             .navigationSplitViewColumnWidth(min: 220, ideal: 280)
         } detail: {

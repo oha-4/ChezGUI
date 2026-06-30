@@ -135,13 +135,32 @@ actor ChezmoiClient {
         )
 
         return decoded.map { (relative, entry) in
-            ManagedEntry(
+            let isDir = dirs.contains(relative)
+            return ManagedEntry(
                 relativePath: relative,
                 absolutePath: entry.absolute,
                 sourceAbsolute: entry.sourceAbsolute,
-                isDir: dirs.contains(relative)
+                isDir: isDir,
+                usesTemplateSyntax: Self.sourceUsesTemplateSyntax(
+                    sourceAbsolute: entry.sourceAbsolute,
+                    isDir: isDir
+                )
             )
         }
+    }
+
+    /// Whether a template source file contains chezmoi template actions
+    /// (`{{ … }}`, default delimiters). Only meaningful for `*.tmpl` source
+    /// files; non-templates, directories and unreadable/binary files return
+    /// `false`. Used to gate "revert to a regular file": removing the template
+    /// attribute from a source that still uses `{{ … }}` would write those
+    /// delimiters out literally instead of rendering them.
+    private static func sourceUsesTemplateSyntax(sourceAbsolute: String, isDir: Bool) -> Bool {
+        guard !isDir, sourceAbsolute.hasSuffix(".tmpl") else { return false }
+        guard let content = try? String(contentsOfFile: sourceAbsolute, encoding: .utf8) else {
+            return false
+        }
+        return content.contains("{{")
     }
 
     /// Map of absolute destination path -> apply effect, for entries that differ.
@@ -297,5 +316,17 @@ actor ChezmoiClient {
         if encrypt { args.append("--encrypt") }
         args.append(target)
         _ = try run(args)
+    }
+
+    /// Toggle a target's template attribute via `chezmoi chattr`. `enabled`
+    /// adds the attribute (`template`, source file gains a `.tmpl` suffix);
+    /// otherwise it removes it (`notemplate`, suffix dropped). `chattr` only
+    /// renames the source file and does not prompt, so no `--force` is needed.
+    /// Callers must not offer `notemplate` for sources that still contain
+    /// `{{ … }}` (see `sourceUsesTemplateSyntax`) — chezmoi would then write the
+    /// delimiters out literally.
+    func setTemplate(target: String, enabled: Bool) throws {
+        let modifier = enabled ? "template" : "notemplate"
+        _ = try run(["chattr", modifier, target])
     }
 }
